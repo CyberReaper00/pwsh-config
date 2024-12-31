@@ -4,7 +4,7 @@ seal gloc Get-Location
 seal show Get-ChildItem
 seal rnit Rename-Item
 seal fn function
-
+# something is added
 function cloc {
   Get-Location | Select-Object -ExpandProperty Path | clip
 }
