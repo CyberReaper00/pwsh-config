@@ -1,19 +1,31 @@
 $null = Get-Command
-Write-Host "Some text is written" -Background Green
+Write-Host "Powershell Has Initiated" -Foreground DarkBlue
 
 Set-Alias seal Set-Alias
 seal rmit Remove-Item
 seal gloc Get-Location
 seal show Get-ChildItem
 seal rnit Rename-Item
-seal fn function
 
 function cloc {
     Get-Location | Select-Object -ExpandProperty Path | clip
 }
 
 function lsf {
-    show -directory
+    param (
+	[int]$Index = $null
+    )
+
+    if ($Index -eq 0) {
+	show -directory
+    } else {
+	$Dir = show -Path . -directory | Select-Object -Skip ($Index - 1) -First 1
+	if ($Dir) {
+	    Set-Location $Dir.FullName
+	} else {
+	    Write-Host "Invlaid index. No directory found at index $Index" -ForegroundColor Red
+	}
+    }
 }
 
 function codes {
@@ -34,6 +46,13 @@ function nconf {
 	nvim init.lua
 }
 
+function cmtconf {
+    cd 'C:\users\windows 11\appdata\local\nvim'
+	gadd
+	gcomm
+	gpm
+}
+
 function nplgn {
     cd 'C:\tools\neovim\nvim-win64\share\nvim\runtime\plugin'
 	ls
@@ -42,11 +61,19 @@ function nplgn {
 function prfl {
     nvim $PROFILE
 }
+
 function cmtprfl {
     cd 'C:\Users\Windows 11\documents\windowspowershell'
-    gadd
-    gcomm
-    gpm
+	gadd
+	gcomm
+	gpm
+}
+
+function path_split {
+    param(
+	    [string[]]$Item
+	 )
+	$env:PATH -split $Item | ForEach-Object {$_}
 }
 
 function navs {
@@ -63,7 +90,7 @@ function hm {
 
 function newit {
     param (
-	    [string]$Name
+	    [string[]]$Name
 	  )
 	New-Item -Path . -Name $Name -ItemType "File"
 }
@@ -114,10 +141,10 @@ function lcltnl {
 	cloudflared tunnel --url localhost:$Port
 }
 
-function lsfN {
-    Param (
-	    [int]$Index = 1
-	  )
-	$Dir = Get-ChildItem -Path . -Directory | Select-Object -Skip ($Index-1) -First 1
-	cd $Dir
+function startup {
+    cd 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup'
+}
+
+function admin {
+    Start-Process powershell -Verb runAs
 }
