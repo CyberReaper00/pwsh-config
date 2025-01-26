@@ -49,7 +49,7 @@ function nconf {
 function push {
 	gadd
 	gcomm
-	gpm
+	gpo
 }
 
 function nplgn {
@@ -65,7 +65,7 @@ function pushprfl {
     cd 'C:\Users\Windows 11\documents\windowspowershell'
 	gadd
 	gcomm
-	gpm
+	gpo
 }
 
 function path_split {
