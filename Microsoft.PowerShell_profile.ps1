@@ -46,8 +46,7 @@ function nconf {
 	nvim init.lua
 }
 
-function cmtconf {
-    cd 'C:\users\windows 11\appdata\local\nvim'
+function push {
 	gadd
 	gcomm
 	gpm
@@ -62,7 +61,7 @@ function prfl {
     nvim $PROFILE
 }
 
-function cmtprfl {
+function pushprfl {
     cd 'C:\Users\Windows 11\documents\windowspowershell'
 	gadd
 	gcomm
@@ -88,7 +87,7 @@ function hm {
     cd ~/
 }
 
-function newit {
+function mkfile {
     param (
 	    [string[]]$Name
 	  )
@@ -96,16 +95,11 @@ function newit {
 }
 
 function gadd {
-    param (
-	    [string[]]$Files = @('.') # Default value
-	  )
+	$Files = (Read-Host 'Enter File Names').Split(',').Trim()
 	git add $Files
 }
 
 function gcomm {
-    param (
-	    [string[]]$Message = @('New commit') # Default value
-	  )
 	$Message = Read-Host 'Enter Commit Message'
 	git commit -m $Message
 }
@@ -114,8 +108,9 @@ function gss {
     git status
 }
 
-function gpm {
-    git push -u origin main
+function gpo {
+    $Branch = Read-Host 'Enter Branch'
+    git push -u origin $Branch
 }
 
 function psrvr {
