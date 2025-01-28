@@ -6,26 +6,34 @@ seal rmit Remove-Item
 seal gloc Get-Location
 seal show Get-ChildItem
 seal rnit Rename-Item
+seal bk	cd..
 
 function cloc {
     Get-Location | Select-Object -ExpandProperty Path | clip
 }
 
+function lsd {
+    param (
+	    [string]$Name = @('none')
+	  )
+
+	if ($Name -eq 'none') {
+	    show -directory
+	} else {
+	    cd *$Name*
+	}
+}
+
 function lsf {
     param (
-	[int]$Index = $null
-    )
+	    [string]$File = @('none')
+	  )
 
-    if ($Index -eq 0) {
-	show -directory
-    } else {
-	$Dir = show -Path . -directory | Select-Object -Skip ($Index - 1) -First 1
-	if ($Dir) {
-	    Set-Location $Dir.FullName
+	if ($File -eq 'none') {
+	    show -File
 	} else {
-	    Write-Host "Invlaid index. No directory found at index $Index" -ForegroundColor Red
+	    show -File *$File*
 	}
-    }
 }
 
 function codes {
@@ -46,7 +54,7 @@ function nconf {
 	nvim init.lua
 }
 
-function push {
+function pgh {
 	gadd
 	gcomm
 	gpo
@@ -63,9 +71,7 @@ function prfl {
 
 function pushprfl {
     cd 'C:\Users\Windows 11\documents\windowspowershell'
-	gadd
-	gcomm
-	gpo
+	pgh
 }
 
 function path_split {
@@ -126,7 +132,7 @@ function chart {
 
 function vfiles {
     cd 'C:\users\windows 11\documents\veracity files'
-	lsf
+	lsd
 }
 
 function lcltnl {
