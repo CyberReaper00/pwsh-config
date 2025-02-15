@@ -1,4 +1,68 @@
+# >>==========>> Terminal Greeting
+
 Write-Host "Powershell Has Initiated" -Foreground DarkBlue
+
+# >>==========>> Terminal Greeting
+
+# >>==========>> Terminal Password
+
+[console]::TreatControlCAsInput = $true  # Disable Ctrl+C termination
+
+$encryptedPassword = "moimiiyqaawpscfcxuwxgldmq"
+$checkString = "cured"
+$checkLength = $checkString.Length
+
+function Vigenere-Decrypt {
+    param (
+        [string]$CipherText,
+        [string]$Key
+    )
+
+    $alphabet = "abcdefghijklmnopqrstuvwxyz"
+    $keyLength = $Key.Length
+    $result = ""
+
+    for ($i = 0; $i -lt $CipherText.Length; $i++) {
+        $char = $CipherText[$i]
+        if ($char -match "[a-z]") {
+            $keyChar = $Key[$i % $keyLength]
+            $shift = $alphabet.IndexOf($keyChar)
+            $newIndex = ($alphabet.IndexOf($char) - $shift + 26) % 26
+            $result += $alphabet[$newIndex]
+        } else {
+            $result += $char
+        }
+    }
+    return $result
+}
+
+while ($true) {
+    Write-Host "Enter Password: "
+    $keyChars = @()
+    
+    while ($true) {
+        $key = [console]::ReadKey($true)
+        
+        if ($key.Key -eq "Enter") { break }
+        if ($key.Key -eq "Backspace" -and $keyChars.Count -gt 0) { $keyChars = $keyChars[0..($keyChars.Count - 2)] }
+        elseif ($key.Key -ne "ControlC") { $keyChars += $key.KeyChar }
+    }
+
+    $userKey = -join $keyChars
+    $decryptedPassword = Vigenere-Decrypt -CipherText $encryptedPassword -Key $userKey
+
+    # Compare only the last $checkLength characters
+    if ($decryptedPassword.Substring($decryptedPassword.Length - $checkLength) -eq $checkString) {
+        Write-Host "`nAccess Granted"
+        break
+    } else {
+        Write-Host "`nIncorrect Key. Try again."
+    }
+}
+
+[console]::TreatControlCAsInput = $false  # Restore Ctrl+C functionality
+
+# >>==========>> Terminal Password
 
 # >>==========>> Aliases
 
@@ -21,21 +85,6 @@ function navs {
     nvim .
 }
 
-function lsd {
-    param (
-	    [switch]$gt,
-	    [string]$name = @('none')
-	  )
-
-	if ($name -eq 'none') {
-	    show -directory
-	} elseif ($gt -and $name) {
-	    cd *$name*
-	} else {
-	    show -directory *$name*
-	}
-}
-
 function open_editor {
     param (
 	    [string]$editor,
@@ -56,41 +105,59 @@ function open_editor {
 
 function format {
     param (
-	[object[]]$items,
-	[int]$w_len = 16
-    )
+	    [int]$w_len = 16,
+	    [object[]]$items
+	  )
 
-    if ($items -and $items.Count -gt 0) {
-	$terminal_width = [math]::Floor($Host.UI.RawUI.BufferSize.Width * 0.8)
-	$current_line = "`n| "
+	if ($items -and $items.Count -gt 0) {
+	    $terminal_width = [math]::Floor($Host.UI.RawUI.BufferSize.Width * 0.98)
+		$current_line = "`n| "
 
-	foreach ($entry in $items) {
-	    $name = $entry.Name
-	    if ($name.Length -gt $w_len) {
-		$name = $name.Substring(0, $w_len - 3) + "..."
-	    } elseif ($name.Length -lt $w_len) {
-		$name = $name.PadRight($w_len)
-	    }
+		foreach ($entry in $items) {
+		    $name = $entry.Name
+			if ($name.Length -gt $w_len) {
+			    $name = $name.Substring(0, $w_len - 3) + "..."
+			} elseif ($name.Length -lt $w_len) {
+			    $name = $name.PadRight($w_len)
+			}
 
-	    if (($current_line.Length + $name.Length) -gt $terminal_width) {
-		wh $current_line
-		$current_line = "| "
-	    }
+		    if (($current_line.Length + $name.Length) -gt $terminal_width) {
+			wh $current_line
+			    $current_line = "| "
+		    }
 
-	    $current_line += " $name |"
+		    $current_line += " $name |"
+		}
+
+	    if ($current_line -ne "") { wh $current_line }
+	} else {
+	    wh "`n`tNo such files found`n"
 	}
+}
 
-	if ($current_line -ne "") { wh $current_line }
-    } else {
-	wh "`n`tNo such files found`n"
-    }
+function lsd {
+    param (
+	    [switch]$s,
+	    [string]$name = @('none'),
+	    [int]$len = 16
+	  )
+
+	if ($name -eq 'none') {
+	    $matched = show -directory
+		format $len $matched
+	} elseif ($s -and $name) {
+	    show -directory *$name*
+	} else {
+	    cd *$name*
+	}
 }
 
 function lsf {
     param (
 	    [switch]$nv,
 	    [switch]$np,
-	    [string]$file
+	    [string]$file,
+	    [int]$len = 16
 	  )
 
 	if ($nv) {
@@ -99,10 +166,10 @@ function lsf {
 	    open_editor 'notepad' $file
 	} elseif ($file) {
 	    $matched = show -File *$file*
-	    format $matched
+		format $len $matched
 	} else {
 	    $all_files = show -File
-	    format $all_files
+		format $len $all_files
 	}
 }
 
@@ -214,16 +281,20 @@ function psrvr {
     param (
 	    [int]$port = 8000 # Default value
 	  )
-	python -m http.server $Port
+	python -m http.server $port
 }
 
 function lcltnl {
     Param (
 	    [int]$port = 8000
 	  )
-	cloudflared tunnel --url localhost:$Port
+	cloudflared tunnel --url localhost:$port
+}
+
+function stop_proc {
+    Param (
+	    [string]$process
+	  )
+	Get-Process $process | Stop-Process -Force
 }
 # >>==========>> Helper Functions
-
-
-
