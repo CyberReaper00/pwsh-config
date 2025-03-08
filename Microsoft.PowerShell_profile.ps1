@@ -1,11 +1,7 @@
 # >>==========>> Terminal Greeting
-
 Write-Host "Powershell Has Initiated" -Foreground DarkBlue
 
-# >>==========>> Terminal Greeting
-
 # >>==========>> Terminal Password
-
 [console]::TreatControlCAsInput = $true  # Disable Ctrl+C termination
 
 $encryptedPassword = "moimiiyqaawpscfcxuwxgldmq"
@@ -62,18 +58,14 @@ while ($true) {
 
 [console]::TreatControlCAsInput = $false  # Restore Ctrl+C functionality
 
-# >>==========>> Terminal Password
-
 # >>==========>> Aliases
 
 Set-Alias seal Set-Alias
 seal rnit Rename-Item
 seal rmit Remove-Item
 seal show Get-ChildItem
-seal bk	cd..
+seal bb	cd..
 seal wh Write-Host
-
-# >>==========>> Aliases
 
 # >>==========>> Traversal Functions
 
@@ -193,14 +185,12 @@ function vfiles {
 }
 
 function startup {
-    cd 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup'
+    cd 'C:\Users\Windows 11\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup'
 }
 
 function admin {
     Start-Process powershell -Verb runAs
 }
-
-# >>==========>> Traversal Functions
 
 # >>==========>> Github Functions
 
@@ -234,8 +224,6 @@ function pgh {
 	gpo
 }
 
-# >>==========>> Github Functions
-
 # >>==========>> Editing Functions
 
 function prfl {
@@ -254,8 +242,6 @@ function mkfile {
 	New-Item -Path . -Name $name -ItemType "File"
 }
 
-# >>==========>> Editing Functions
-
 # >>==========>> Helper Functions
 
 function qwe {
@@ -272,7 +258,7 @@ function iop {
 
 function path_split {
     param(
-	    [string[]]$item
+	    [string[]]$item = @(';')
 	 )
 	$env:PATH -split $item | ForEach-Object {$_}
 }
@@ -297,4 +283,3 @@ function stop_proc {
 	  )
 	Get-Process $process | Stop-Process -Force
 }
-# >>==========>> Helper Functions
