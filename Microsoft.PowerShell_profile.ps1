@@ -249,7 +249,8 @@ function qwe {
 }
 
 function cloc {
-    Get-Location | Select-Object -ExpandProperty Path | clip
+    $path = Get-Location | Select-Object -ExpandProperty Path
+    "`"$path`"" | clip
 }
 
 function iop {
