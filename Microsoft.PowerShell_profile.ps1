@@ -170,6 +170,10 @@ function codes {
 	ls
 }
 
+function min_scr {
+    cd "C:\Users\Windows 11\AppData\Roaming\Min\userscripts"
+}
+
 function lad {
     cd $env:LOCALAPPDATA
 }
