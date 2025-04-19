@@ -44,7 +44,7 @@ function format {
 
 	if ($items -and $items.Count -gt 0) {
 	    $terminal_width = [math]::Floor($Host.UI.RawUI.BufferSize.Width * 0.98)
-		$current_line = "`n| "
+		$current_line = "`n⎪ "
 
 		foreach ($entry in $items) {
 		    $name = $entry.Name
@@ -56,10 +56,10 @@ function format {
 
 		    if (($current_line.Length + $name.Length) -gt $terminal_width) {
 			wh $current_line
-			    $current_line = "| "
+			    $current_line = "⎪ "
 		    }
 
-		    $current_line += " $name |"
+		    $current_line += " $name ⎪"
 		}
 
 	    if ($current_line -ne "") { wh $current_line }
