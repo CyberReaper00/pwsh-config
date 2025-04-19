@@ -1,65 +1,7 @@
 # >>==========>> Terminal Greeting
 Write-Host "Powershell Has Initiated" -Foreground DarkBlue
 
-# >>==========>> Terminal Password
-[console]::TreatControlCAsInput = $true  # Disable Ctrl+C termination
-
-$encryptedPassword = "moimiiyqaawpscfcxuwxgldmq"
-$checkString = "cured"
-$checkLength = $checkString.Length
-
-function Vigenere-Decrypt {
-    param (
-        [string]$CipherText,
-        [string]$Key
-    )
-
-    $alphabet = "abcdefghijklmnopqrstuvwxyz"
-    $keyLength = $Key.Length
-    $result = ""
-
-    for ($i = 0; $i -lt $CipherText.Length; $i++) {
-        $char = $CipherText[$i]
-        if ($char -match "[a-z]") {
-            $keyChar = $Key[$i % $keyLength]
-            $shift = $alphabet.IndexOf($keyChar)
-            $newIndex = ($alphabet.IndexOf($char) - $shift + 26) % 26
-            $result += $alphabet[$newIndex]
-        } else {
-            $result += $char
-        }
-    }
-    return $result
-}
-
-while ($true) {
-    Write-Host "Enter Password: "
-    $keyChars = @()
-    
-    while ($true) {
-        $key = [console]::ReadKey($true)
-        
-        if ($key.Key -eq "Enter") { break }
-        if ($key.Key -eq "Backspace" -and $keyChars.Count -gt 0) { $keyChars = $keyChars[0..($keyChars.Count - 2)] }
-        elseif ($key.Key -ne "ControlC") { $keyChars += $key.KeyChar }
-    }
-
-    $userKey = -join $keyChars
-    $decryptedPassword = Vigenere-Decrypt -CipherText $encryptedPassword -Key $userKey
-
-    # Compare only the last $checkLength characters
-    if ($decryptedPassword.Substring($decryptedPassword.Length - $checkLength) -eq $checkString) {
-        Write-Host "`nAccess Granted"
-        break
-    } else {
-        Write-Host "`nIncorrect Key. Try again."
-    }
-}
-
-[console]::TreatControlCAsInput = $false  # Restore Ctrl+C functionality
-
 # >>==========>> Aliases
-
 Set-Alias seal Set-Alias
 seal rnit Rename-Item
 seal rmit Remove-Item
@@ -68,7 +10,6 @@ seal bb	cd..
 seal wh Write-Host
 
 # >>==========>> Traversal Functions
-
 function hm {
     cd ~/
 }
@@ -197,7 +138,6 @@ function admin {
 }
 
 # >>==========>> Github Functions
-
 function gadd {
     $files = (Read-Host 'Enter File Names').Split(',').Trim()
 	git add $files
@@ -229,7 +169,6 @@ function pgh {
 }
 
 # >>==========>> Editing Functions
-
 function prfl {
     nvim $PROFILE
 }
@@ -247,7 +186,6 @@ function mkfile {
 }
 
 # >>==========>> Helper Functions
-
 function qwe {
     exit
 }
