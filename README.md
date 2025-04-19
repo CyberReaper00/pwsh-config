@@ -1,2 +1,3 @@
-Just the config file for my Powershell profile\n
+Just the config file for my Powershell profile
+
 Will add a detailed overview at some point
