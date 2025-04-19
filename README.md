@@ -1,1 +1,2 @@
-Just the config file for my Powershell workspace that I use in WinTer
+Just the config file for my Powershell profile
+Will add a detailed overview at some point
