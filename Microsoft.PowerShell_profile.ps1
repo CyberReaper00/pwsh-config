@@ -135,11 +135,11 @@ function gcomm {
 function gpo {
     while ($true) {
 	$branch = Read-Host 'Enter Branch'
+	git push -u origin $branch
 
-	try {
-	    git push -u origin $branch
+	if ($LASTEXITCODE -eq 0) {
 	    break
-	} catch {
+	} else {
 	    wh "An error occurred, try again"
 	}
     }
