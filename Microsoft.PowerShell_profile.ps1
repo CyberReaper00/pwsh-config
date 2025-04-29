@@ -133,8 +133,16 @@ function gcomm {
 }
 
 function gpo {
-    $branch = Read-Host 'Enter Branch'
-    git push -u origin $branch
+    while ($true) {
+	$branch = Read-Host 'Enter Branch'
+
+	try {
+	    git push -u origin $branch
+	    break
+	} catch {
+	    wh "An error occurred, try again"
+	}
+    }
 }
 
 function gss {
