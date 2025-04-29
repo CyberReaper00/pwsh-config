@@ -139,6 +139,8 @@ function gpo {
 
 	if ($LASTEXITCODE -eq 0) {
 	    break
+	} elseif ($branch -eq "") {
+	    break
 	} else {
 	    wh "An error occurred, try again"
 	}
@@ -156,17 +158,32 @@ function pgh {
 }
 
 function pegh {
-    wh "Pushing Neovim Config"
+    wh "`n-------------------------------------`nPushing Neovim Config"
     cd "/home/nixos/nixos/configs/nvim-config"
     pgh
 
-    wh "Pushing Powershell Config"
+    wh "`n-------------------------------------`nPushing Powershell Config"
     cd "/home/nixos/nixos/configs/pwsh-config"
     pgh
 
-    wh "Pushing NixOS Config"
+    wh "`n-------------------------------------`nPushing NixOS Config"
     cd "/home/nixos/nixos"
     pgh
+}
+
+function ssall {
+    wh "`n-------------------------------------`nChecking Neovim Config"
+    cd "/home/nixos/nixos/configs/nvim-config"
+    gss
+
+    wh "`n-------------------------------------`nChecking Powershell Config"
+    cd "/home/nixos/nixos/configs/pwsh-config"
+    gss
+
+    wh "`n-------------------------------------`nChecking NixOS Config"
+    cd "/home/nixos/nixos"
+    gss
+
 }
 
 # >>==========>> Editing Functions
