@@ -1,12 +1,17 @@
 # >>==========>> Terminal Greeting
 Write-Host "Powershell Has Initiated" -Foreground DarkBlue
+$user = whoami
+if ($user -eq "nixos") {
+    function prompt {"`e[1;34m$user ===$PWD===>>`n`e[0m"}
+} elseif ($user -eq "root") {
+    function prompt {"`e[1;31m$user ===$PWD===>>`n`e[0m"}
+}
 
 # >>==========>> Aliases
 Set-Alias seal Set-Alias
 seal rnit Rename-Item
-seal rmit Remove-Item
 seal show Get-ChildItem
-seal bb	cd..
+seal B cd..
 seal wh Write-Host
 
 # >>==========>> Traversal Functions
@@ -107,55 +112,29 @@ function lsf {
 }
 
 function codes {
-    cd 'C:\users\windows 11\documents\code'
-	ls
-}
-
-function min_scr {
-    cd "C:\Users\Windows 11\AppData\Roaming\Min\userscripts"
-}
-
-function lad {
-    cd $env:LOCALAPPDATA
-}
-
-function nplgn {
-    cd 'C:\tools\neovim\nvim-win64\share\nvim\runtime\plugin'
-	ls
+    cd "/home/nixos/documents/code"
+    ls
 }
 
 function vfiles {
-    cd 'C:\users\windows 11\documents\veracity files'
-	lsd
-}
-
-function startup {
-    cd 'C:\Users\Windows 11\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup'
-}
-
-function admin {
-    Start-Process powershell -Verb runAs
+    cd "/home/nixos/documents/veracity files"
+    lsd
 }
 
 # >>==========>> Github Functions
 function gadd {
     $files = (Read-Host 'Enter File Names').Split(',').Trim()
-	git add $files
+    git add $files
 }
 
 function gcomm {
     $message = Read-Host 'Enter Commit Message'
-	git commit -m $message
+    git commit -m $message
 }
 
 function gpo {
     $branch = Read-Host 'Enter Branch'
-	git push -u origin $branch
-}
-
-function pushprfl {
-    cd 'C:\Users\Windows 11\documents\windowspowershell'
-	pgh
+    git push -u origin $branch
 }
 
 function gss {
@@ -164,20 +143,25 @@ function gss {
 
 function pgh {
     gadd
-	gcomm
-	gpo
+    gcomm
+    gpo
+}
+
+function pegh {
+    wh "Pushing Neovim Config"
+    cd "/home/nixos/nixos/configs/nvim-config"
+    pgh
+
+    wh "Pushing Powershell Config"
+    cd "/home/nixos/nixos/configs/pwsh-config"
+    pgh
+
+    wh "Pushing NixOS Config"
+    cd "/home/nixos/nixos"
+    pgh
 }
 
 # >>==========>> Editing Functions
-function prfl {
-    nvim $PROFILE
-}
-
-function nconf {
-    cd 'C:\users\windows 11\appdata\local\nvim'
-	nvim init.lua
-}
-
 function mkfile {
     param (
 	    [string[]]$name
@@ -185,23 +169,26 @@ function mkfile {
 	New-Item -Path . -Name $name -ItemType "File"
 }
 
+function rmit {
+    param (
+	[switch]$r,
+	[string[]]$name
+    )
+    if ($r) {
+	rm -r *$name*
+    } else {
+	rm *$name*
+    }
+}
+
 # >>==========>> Helper Functions
 function qwe {
     exit
 }
 
-function cloc {
-    $path = Get-Location | Select-Object -ExpandProperty Path
-    "`"$path`"" | clip
-}
-
-function iop {
-    explorer .
-}
-
-function path_split {
+function p_split {
     param(
-	    [string[]]$item = @(';')
+	    [string[]]$item = @(':')
 	 )
 	$env:PATH -split $item | ForEach-Object {$_}
 }
