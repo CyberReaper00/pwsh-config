@@ -1,12 +1,54 @@
 # >>==========>> Terminal Greeting
 Write-Host "Powershell Has Initiated" -Foreground DarkBlue
-$user = whoami
-if ($user -eq "nixos") {
-    function prompt {"`e[1;34m$user ===$PWD===>>`n`e[0m"}
-} elseif ($user -eq "root") {
-    function prompt {"`e[1;31m$user ===$PWD===>>`n`e[0m"}
+
+# Shell Instance Counter
+function shell_depth {
+    $depth = 0
+    $crnt_pid = $PID 
+
+    while ($true) {
+	$ppid = (Get-Content "/proc/$crnt_pid/status" | Where-Object { $_ -like "PPid:*" }) -replace 'PPid:\s*', ''
+	if (-not (Test-Path "/proc/$ppid")) { break }
+
+	$parent = (Get-Content "/proc/$ppid/comm" -ErrorAction SilentlyContinue)
+	if ($parent -eq "pwsh") {
+	    $depth++
+	    $crnt_pid = $ppid
+	} else {
+	    break
+	}
+    }
+
+    return $depth
 }
 
+function prompt_change {
+    param (
+	[int]$color,
+	[string]$username,
+	[int]$depth_val
+   )
+
+    # "`e[1;${color}m[$username] [$depth_val] ===$PWD===>>`n`e[0m"
+    "`e[1;${color}m<| |===|$username|===|$depth_val|===$PWD/===| |>`n`e[0m"
+}
+
+
+$user = whoami
+$depth = shell_depth
+$nix_check = $env:IN_NIX_SHELL
+
+function prompt {
+    if ($nix_check) {
+	prompt_change 32 "nix-shell" $depth
+    } else {
+	if ($user -eq "nixos") {
+	    prompt_change 34 $user $depth
+	} elseif ($user -eq "root") {
+	    prompt_change 31 $user $depth
+	}
+    }
+}
 # >>==========>> Aliases
 Set-Alias seal Set-Alias
 seal rnit Rename-Item
@@ -156,40 +198,76 @@ function pgh {
     gcomm
     gpo
 }
-
+#╭╮╰╯│─├
 function pegh {
-    wh "`n-------------------------------------`nPushing Neovim Config"
+    wh @"
+
+
+	    ╭─────────────────────────────────────╮
+	    │        Pushing Neovim Config        │
+	    ╰─────────────────────────────────────╯
+"@
+
     cd "/home/nixos/nixos/configs/nvim-config"
     pgh
 
-    wh "`n-------------------------------------`nPushing Powershell Config"
+    wh @"
+
+
+	    ╭─────────────────────────────────────╮
+	    │      Pushing Powershell Config      │
+	    ╰─────────────────────────────────────╯
+"@
     cd "/home/nixos/nixos/configs/pwsh-config"
     pgh
 
-    wh "`n-------------------------------------`nPushing NixOS Config"
+    wh @"
+
+
+	    ╭─────────────────────────────────────╮
+	    │         Pushing NixOS Config        │
+	    ╰─────────────────────────────────────╯
+"@
     cd "/home/nixos/nixos"
     pgh
 }
 
 function ssall {
-    wh "`n-------------------------------------`nChecking Neovim Config"
+    wh @"
+
+
+	    ╭─────────────────────────────────────╮
+	    │       Checking Neovim Config        │
+	    ╰─────────────────────────────────────╯
+"@
     cd "/home/nixos/nixos/configs/nvim-config"
     gss
 
-    wh "`n-------------------------------------`nChecking Powershell Config"
+    wh @"
+
+
+	    ╭─────────────────────────────────────╮
+	    │     Checking Powershell Config      │
+	    ╰─────────────────────────────────────╯
+"@
     cd "/home/nixos/nixos/configs/pwsh-config"
     gss
 
-    wh "`n-------------------------------------`nChecking NixOS Config"
+    wh @"
+
+
+	    ╭─────────────────────────────────────╮
+	    │        Checking NixOS Config        │
+	    ╰─────────────────────────────────────╯
+"@
     cd "/home/nixos/nixos"
     gss
-
 }
 
 # >>==========>> Editing Functions
 function mkfile {
     param (
-	    [string[]]$name
+	    [string]$name
 	  )
 	New-Item -Path . -Name $name -ItemType "File"
 }
@@ -209,6 +287,15 @@ function rmit {
 # >>==========>> Helper Functions
 function qwe {
     exit
+}
+
+function shell {
+    param (
+	[Parameter(ValueFromRemainingArguments = $true)]
+	[string[]]$args
+    )
+    $args1 = $args.Split(' ').Trim()
+    nix-shell --command pwsh $args1
 }
 
 function p_split {
