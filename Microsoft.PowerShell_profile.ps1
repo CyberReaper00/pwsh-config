@@ -199,67 +199,50 @@ function pgh {
     gpo
 }
 #╭╮╰╯│─├
-function pegh {
+function header {
+    param (
+	[string]$name
+    )
+
+    $name_len = $name.Length
+    $width = $name_len + 12
+    $border = "─" * $width
+    $spacing = $width - $name_len
+    $content = (" " * [int]($spacing/2)) + $name + (" " * [int]($spacing/2))
+
     wh @"
 
 
-	    ╭─────────────────────────────────────╮
-	    │        Pushing Neovim Config        │
-	    ╰─────────────────────────────────────╯
+	    ╭${border}╮
+            │${content}│
+            ╰${border}╯
 "@
+}
 
+function pegh {
+    header "Pushing Neovim Config"
     cd "/home/nixos/nixos/configs/nvim-config"
     pgh
 
-    wh @"
-
-
-	    ╭─────────────────────────────────────╮
-	    │      Pushing Powershell Config      │
-	    ╰─────────────────────────────────────╯
-"@
+    header "Pushing Powershell Config"
     cd "/home/nixos/nixos/configs/pwsh-config"
     pgh
 
-    wh @"
-
-
-	    ╭─────────────────────────────────────╮
-	    │         Pushing NixOS Config        │
-	    ╰─────────────────────────────────────╯
-"@
+    header "Pushing NixOS Config"
     cd "/home/nixos/nixos"
     pgh
 }
 
 function ssall {
-    wh @"
-
-
-	    ╭─────────────────────────────────────╮
-	    │       Checking Neovim Config        │
-	    ╰─────────────────────────────────────╯
-"@
+    header "Checking Neovim Config"
     cd "/home/nixos/nixos/configs/nvim-config"
     gss
 
-    wh @"
-
-
-	    ╭─────────────────────────────────────╮
-	    │     Checking Powershell Config      │
-	    ╰─────────────────────────────────────╯
-"@
+    header "Checking Powershell Config"
     cd "/home/nixos/nixos/configs/pwsh-config"
     gss
 
-    wh @"
-
-
-	    ╭─────────────────────────────────────╮
-	    │        Checking NixOS Config        │
-	    ╰─────────────────────────────────────╯
-"@
+    header "Checking NixOS Config"
     cd "/home/nixos/nixos"
     gss
 }
