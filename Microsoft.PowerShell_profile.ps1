@@ -1,6 +1,18 @@
 # >>==========>> Terminal Greeting
 Write-Host "Powershell Has Initiated" -Foreground DarkBlue
 
+$boot_secs = [double](Get-Content /proc/stat | Where-Object { $_ -like "btime*" } -replace 'btime ', '')
+$boot_time = [DateTimeOffset]::FromUnixTimeSeconds($boot_secs).DateTime
+$proc_start = (Get-Process -Id $PID).StartTime
+
+if (($proc_start - $boot_time).TotalSeconds -lt 30) {
+    $name = whoami
+    if ($name -ne "nixos") {
+	su - nixos
+    }
+}
+
+#╭╮╰╯│─├
 # Shell Instance Counter
 function shell_depth {
     $depth = 0
@@ -30,14 +42,12 @@ function prompt_change {
    )
 
     # "`e[1;${color}m[$username] [$depth_val] ===$PWD===>>`n`e[0m"
-    "`e[1;${color}m<| |===|$username|===|$depth_val|===$PWD/===| |>`n`e[0m"
+    "`n`e[1;${color}m<| ||===|$username|===|$depth_val|===$PWD/===|| |>`e[0m`n`n"
 }
-
 
 $user = whoami
 $depth = shell_depth
 $nix_check = $env:IN_NIX_SHELL
-
 function prompt {
     if ($nix_check) {
 	prompt_change 32 "nix-shell" $depth
@@ -154,12 +164,12 @@ function lsf {
 }
 
 function codes {
-    cd "/home/nixos/documents/code"
+    cd "/home/nixos/Documents/Code"
     ls
 }
 
 function vfiles {
-    cd "/home/nixos/documents/veracity files"
+    cd "/home/nixos/Documents/Veracity Files"
     lsd
 }
 
@@ -198,7 +208,7 @@ function pgh {
     gcomm
     gpo
 }
-#╭╮╰╯│─├
+
 function header {
     param (
 	[string]$name
@@ -292,7 +302,8 @@ function psrvr {
     param (
 	    [int]$port = 8000 # Default value
 	  )
-	python -m http.server $port
+
+python -m http.server $port
 }
 
 function lcltnl {
@@ -307,4 +318,21 @@ function stop_proc {
 	    [string]$process
 	  )
 	Get-Process $process | Stop-Process -Force
+}
+
+function conv_hex {
+    param (
+	[string[]]$values
+    )
+    $colors = $values.Split(" ")
+
+    wh ""
+    foreach ($color in $colors) {
+	$hex = $color.Split("#")[-1]
+	$r = [Convert]::ToInt32($hex.Substring(0,2), 16)
+	$g = [Convert]::ToInt32($hex.Substring(2,2), 16)
+	$b = [Convert]::ToInt32($hex.Substring(4,2), 16)
+
+	wh "`e[48;2;${r};${g};${b}m      `e[0m │ HEX: #${hex}"
+    }
 }
