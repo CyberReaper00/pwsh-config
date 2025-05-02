@@ -1,5 +1,6 @@
 # >>==========>> Terminal Greeting
 Write-Host "Powershell Has Initiated" -Foreground DarkBlue
+Set-PSReadLineKeyHandler -Key Tab -Function AcceptSuggestion
 
 $boot_secs = [double](Get-Content /proc/stat | Where-Object { $_ -like "btime*" } -replace 'btime ', '')
 $boot_time = [DateTimeOffset]::FromUnixTimeSeconds($boot_secs).DateTime
