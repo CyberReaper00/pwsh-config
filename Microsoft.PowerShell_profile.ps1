@@ -1,8 +1,10 @@
 # >>==========>> Terminal Greeting
 Write-Host "Powershell Has Initiated" -Foreground DarkBlue
-Set-PSReadLineKeyHandler -Key Tab -Function AcceptSuggestion
+Set-PSReadLineKeyHandler -Key Tab -Function Complete
+Set-PSReadLineKeyHandler -Key 'Alt+p' -Function AcceptSuggestion
 
-$boot_secs = [double](Get-Content /proc/stat | Where-Object { $_ -like "btime*" } -replace 'btime ', '')
+$boot_line = Get-Content /proc/stat | Where-Object { $_ -like "btime*" }
+$boot_secs = [double]( $boot_line -replace 'btime ', '')
 $boot_time = [DateTimeOffset]::FromUnixTimeSeconds($boot_secs).DateTime
 $proc_start = (Get-Process -Id $PID).StartTime
 
@@ -233,14 +235,17 @@ function header {
 function pegh {
     header "Pushing Neovim Config"
     cd "/home/nixos/nixos/configs/nvim-config"
+    gss
     pgh
 
     header "Pushing Powershell Config"
     cd "/home/nixos/nixos/configs/pwsh-config"
+    gss
     pgh
 
     header "Pushing NixOS Config"
     cd "/home/nixos/nixos"
+    gss
     pgh
 }
 
@@ -261,9 +266,10 @@ function ssall {
 # >>==========>> Editing Functions
 function mkfile {
     param (
-	    [string]$name
-	  )
-	New-Item -Path . -Name $name -ItemType "File"
+	[string]$name
+    )
+    
+    New-Item -Path . -Name $name -ItemType "File"
 }
 
 function rmit {
@@ -286,7 +292,7 @@ function qwe {
 function shell {
     param (
 	[Parameter(ValueFromRemainingArguments = $true)]
-	[string[]]$args
+	[string]$args
     )
     $args1 = $args.Split(' ').Trim()
     nix-shell --command pwsh $args1
@@ -336,4 +342,17 @@ function conv_hex {
 
 	wh "`e[48;2;${r};${g};${b}m      `e[0m │ HEX: #${hex}"
     }
+}
+
+function hta {
+    param (
+	[string]$hex
+    )
+
+    $text = ""
+    for ($i = 0; $i -lt $hex.Length; $i += 2) {
+	$char = [char]([Convert]::ToInt32($hex.Substring($i, 2), 16))
+	$text += $char
+    }
+    return $text
 }
