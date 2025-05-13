@@ -3,18 +3,6 @@ Write-Host "Powershell Has Initiated" -Foreground DarkBlue
 Set-PSReadLineKeyHandler -Key Tab -Function Complete
 Set-PSReadLineKeyHandler -Key 'Alt+p' -Function AcceptSuggestion
 
-$boot_line = Get-Content /proc/stat | Where-Object { $_ -like "btime*" }
-$boot_secs = [double]( $boot_line -replace 'btime ', '')
-$boot_time = [DateTimeOffset]::FromUnixTimeSeconds($boot_secs).DateTime
-$proc_start = (Get-Process -Id $PID).StartTime
-
-if (($proc_start - $boot_time).TotalSeconds -lt 30) {
-    $name = whoami
-    if ($name -ne "nixos") {
-	su - nixos
-    }
-}
-
 #╭╮╰╯│─├
 # Shell Instance Counter
 function shell_depth {
