@@ -1,7 +1,11 @@
 # >>==========>> Terminal Greeting
+Write-Host "`e[2J`e[H"
 Write-Host "Powershell Has Initiated" -Foreground DarkBlue
 Set-PSReadLineKeyHandler -Key Tab -Function Complete
 Set-PSReadLineKeyHandler -Key 'Alt+p' -Function AcceptSuggestion
+
+function update { sudo nixos-rebuild switch --flake ~/nixos#main-config }
+function upgrade { sudo nixos-rebuild switch --upgrade }
 
 #╭╮╰╯│─├
 # Shell Instance Counter
@@ -254,21 +258,27 @@ function ssall {
 # >>==========>> Editing Functions
 function mkfile {
     param (
-	[string]$name
+	[string]$dir,
+	[string[]]$names
     )
     
-    New-Item -Path . -Name $name -ItemType "File"
+    foreach ($name in $names) {
+	New-Item -Path $dir -Name $name -ItemType "File"
+    }
 }
 
 function rmit {
     param (
 	[switch]$r,
-	[string[]]$name
+	[string[]]$names
     )
-    if ($r) {
-	rm -r *$name*
-    } else {
-	rm *$name*
+
+    foreach ($name in $names) {
+	if ($r) {
+	    rm -r *$name*
+	} else {
+	    rm *$name*
+	}
     }
 }
 
@@ -282,8 +292,12 @@ function shell {
 	[Parameter(ValueFromRemainingArguments = $true)]
 	[string]$args
     )
-    $args1 = $args.Split(' ').Trim()
-    nix-shell --command pwsh $args1
+    if ($args -eq "") {
+	nix-shell --command pwsh
+    } else {
+	$args1 = $args.Split(' ').Trim()
+	nix-shell --command pwsh -p $args1
+    }
 }
 
 function p_split {
@@ -343,4 +357,39 @@ function hta {
 	$text += $char
     }
     return $text
+}
+
+function rndev {
+    param (
+	[switch]$h,
+	[switch]$info,
+	[string]$ftype,
+	[string]$dev_name,
+	[string]$new_name
+    )
+
+    if ( $h ) {
+	wh "usage: [ PARAMS... ] [ -h ] [ -info ]"
+	wh "`nPARAMS: | All parameters are necessary |"
+	wh "[ filesystem ]`tIn this, the filesystem of the device should be written`n`tAccepted formats are 'fat32', 'vfat', 'ext2', 'ext3', 'ext4', 'ntfs'`n"
+	wh "[ /dev/name ]`tIn this, the device name of the device should be written`n`tExample: /dev/sda1, /dev/sdc3 etc.`n"
+	wh "[ new_name ]`tIn this, the new name that will be given to the drive should be written`n`tExample: 'New Drive', 'something different' etc."
+	wh "`nFLAGS:"
+	wh "-h`tDisplays this help message"
+	wh "-info`tDisplays all info on every connected storage device"
+    }
+    elseif ( $info ) {
+	blkid | sort | awk '{print $1; for (i=2; i<=NF; i++) printf "%s%s", $i, (i==NF ? "" : OFS); print ""; print ""}' | sed 's/://'}
+    elseif ( $ftype -eq "" -and $dev_name -eq "" -and $new_name -eq "" ) {
+	wh "No parameters were provided, use -h for help"
+    }
+    else {
+	try { sudo umount $dev_name }
+	catch { Write-Error "Failed to unmount $dev_name. Ensure its not in use"; return }
+
+	if ( $ftype -eq "fat32" -or "vfat" ) { sudo mlabel "-i" $dev_name "::$new_name" }
+	elseif ( $ftype -eq "ext2" -or $ftype -eq "ext3" -or $ftype -eq "ext4" ) { sudo e2label $dev_name $new_name }
+	elseif ( $ftype -eq "ntfs" ) { sudo ntfslabel $dev_name $new_name }
+	else { Write-Error "Unsupported filesystem type: $ftype`n" }
+    }
 }
