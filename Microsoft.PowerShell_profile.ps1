@@ -4,8 +4,26 @@ Write-Host "Powershell Has Initiated" -Foreground DarkBlue
 Set-PSReadLineKeyHandler -Key Tab -Function Complete
 Set-PSReadLineKeyHandler -Key 'Alt+p' -Function AcceptSuggestion
 
-function update { sudo nixos-rebuild switch --flake ~/nixos#main-config }
-function upgrade { sudo nixos-rebuild switch --upgrade }
+function update {
+    param (
+	[switch]$c,
+	[string]$config_name
+    )
+
+    Write-Host "`e[2J`e[H"
+    if ( -not $config_name ) {
+	Write-Error "Error: Config name was not specified..."
+    } else {
+	if ( $c ) {
+	    Write-Host "Updating Flake...`n"
+	    sudo nixos-rebuild switch --flake /home/nixos/nixos#$config --impure
+	} else {
+	    Write-Host "Updating System...`n"
+	    sudo nix flake update --flake /home/nixos/nixos --impure
+	    sudo nixos-rebuild switch --flake /home/nixos/nixos#$config --impure
+	}
+    }
+}
 
 #╭╮╰╯│─├
 # Shell Instance Counter
@@ -226,12 +244,12 @@ function header {
 
 function pegh {
     header "Pushing Neovim Config"
-    cd "/home/nixos/nixos/configs/nvim-config"
+    cd "/home/nixos/nixos/user_configs/nvim_config"
     gss
     pgh
 
     header "Pushing Powershell Config"
-    cd "/home/nixos/nixos/configs/pwsh-config"
+    cd "/home/nixos/nixos/user_configs/pwsh_config"
     gss
     pgh
 
@@ -243,11 +261,11 @@ function pegh {
 
 function ssall {
     header "Checking Neovim Config"
-    cd "/home/nixos/nixos/configs/nvim-config"
+    cd "/home/nixos/nixos/user_configs/nvim_config"
     gss
 
     header "Checking Powershell Config"
-    cd "/home/nixos/nixos/configs/pwsh-config"
+    cd "/home/nixos/nixos/user_configs/pwsh_config"
     gss
 
     header "Checking NixOS Config"
@@ -391,5 +409,58 @@ function rndev {
 	elseif ( $ftype -eq "ext2" -or $ftype -eq "ext3" -or $ftype -eq "ext4" ) { sudo e2label $dev_name $new_name }
 	elseif ( $ftype -eq "ntfs" ) { sudo ntfslabel $dev_name $new_name }
 	else { Write-Error "Unsupported filesystem type: $ftype`n" }
+    }
+}
+
+function csn {
+    param (
+	[switch]$o,
+	[switch]$n
+    )
+    if ($o) {
+	mv 'slock.c' '11slock.c'
+	mv 'config.def.h' '11config.def.h'
+	mv 'config.mk' '11config.mk'
+
+	mv 'orig.c' 'slock.c'
+	mv 'orig.h' 'config.def.h'
+	mv 'orig.mk' 'config.mk'
+    } elseif ($n) {
+	mv 'slock.c' 'orig.c'
+	mv 'config.def.h' 'orig.h'
+	mv 'config.mk' 'orig.mk'
+
+	mv '11slock.c' 'slock.c'
+	mv '11config.def.h' 'config.def.h'
+	mv '11config.mk' 'config.mk'
+    }
+}
+
+function rfd {
+    param (
+	[string]$arg
+    )
+
+    $loc = Get-Location
+    cd /
+    fd $arg
+    cd $loc
+}
+
+function nkl {
+    param (
+	[string]$file = ""
+    )
+
+    if ($file) {
+	$loc = Get-Location
+	cd
+	nvim $loc'/'$file
+	cd $loc
+    } else {
+	$loc = Get-Location
+	cd
+	nvim
+	cd $loc
     }
 }
