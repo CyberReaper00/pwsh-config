@@ -4,25 +4,17 @@ Write-Host "Powershell Has Initiated" -Foreground DarkBlue
 Set-PSReadLineKeyHandler -Key Tab -Function Complete
 Set-PSReadLineKeyHandler -Key 'Alt+p' -Function AcceptSuggestion
 
-function update {
+
+function clsys {
     param (
-	[switch]$c,
 	[string]$config_name
     )
 
-    Write-Host "`e[2J`e[H"
-    if ( -not $config_name ) {
-	Write-Error "Error: Config name was not specified..."
-    } else {
-	if ( $c ) {
-	    Write-Host "Updating Flake...`n"
-	    sudo nixos-rebuild switch --flake /home/nixos/nixos#$config --impure
-	} else {
-	    Write-Host "Updating System...`n"
-	    sudo nix flake update --flake /home/nixos/nixos --impure
-	    sudo nixos-rebuild switch --flake /home/nixos/nixos#$config --impure
-	}
-    }
+    if (-not $config_name)
+	{ Write-Error "Config name was not specified..."; return; }
+    
+    sudo nix-collect-garbage -d
+    sudo nixos-rebuild boot --flake /home/nixos/nixos#$config_name --impure
 }
 
 #╭╮╰╯│─├
@@ -54,7 +46,6 @@ function prompt_change {
 	[int]$depth_val
    )
 
-    # "`e[1;${color}m[$username] [$depth_val] ===$PWD===>>`n`e[0m"
     "`n`e[1;${color}m<| ||===|$username|===|$depth_val|===$PWD/===|| |>`e[0m`n`n"
 }
 
@@ -80,13 +71,6 @@ seal B cd..
 seal wh Write-Host
 
 # >>==========>> Traversal Functions
-function hm {
-    cd ~/
-}
-
-function navs {
-    nvim .
-}
 
 function open_editor {
     param (
@@ -158,7 +142,7 @@ function lsd {
 function lsf {
     param (
 	    [switch]$nv,
-	    [switch]$np,
+	    [switch]$mp,
 	    [string]$file,
 	    [int]$len = 16
 	  )
@@ -166,7 +150,7 @@ function lsf {
 	if ($nv) {
 	    open_editor 'nvim' $file
 	} elseif ($np) {
-	    open_editor 'notepad' $file
+	    open_editor 'mousepad' $file
 	} elseif ($file) {
 	    $matched = show -File *$file*
 		format $len $matched
@@ -181,12 +165,27 @@ function codes {
     ls
 }
 
-function vfiles {
-    cd "/home/nixos/Documents/Veracity Files"
-    lsd
+# >>==========>> Github Functions
+function gcr {
+
+    param (
+	[switch]$e
+    )
+
+    $link = (Read-Host 'Enter remote repo link').Trim()
+
+    git init
+    git branch -m main
+    git remote add origin $link
+
+    if ($e) {
+	git pull --rebase origin main
+	git add .
+	git commit -m "New commit"
+	git push --set-upstream origin main
+    }
 }
 
-# >>==========>> Github Functions
 function gadd {
     $files = (Read-Host 'Enter File Names').Split(',').Trim()
     git add $files
@@ -199,22 +198,20 @@ function gcomm {
 
 function gpo {
     while ($true) {
-	$branch = Read-Host 'Enter Branch'
-	git push -u origin $branch
+		$branch = Read-Host 'Enter Branch'
+		git push -u origin $branch
 
-	if ($LASTEXITCODE -eq 0) {
-	    break
-	} elseif ($branch -eq "") {
-	    break
-	} else {
-	    wh "An error occurred, try again"
-	}
+		if ($LASTEXITCODE -eq 0) {
+			break
+		} elseif ($branch -eq "") {
+			break
+		} else {
+			wh "An error occurred, try again"
+		}
     }
 }
 
-function gss {
-    git status
-}
+function gss { git status }
 
 function pgh {
     gadd
@@ -224,7 +221,7 @@ function pgh {
 
 function header {
     param (
-	[string]$name
+		[string]$name
     )
 
     $name_len = $name.Length
@@ -233,8 +230,8 @@ function header {
     $spacing = $width - $name_len
     $content = (" " * [int]($spacing/2)) + $name + (" " * [int]($spacing/2))
 
+    Write-Host "`e[2J`e[H"
     wh @"
-
 
 	    ╭${border}╮
             │${content}│
@@ -300,21 +297,45 @@ function rmit {
     }
 }
 
-# >>==========>> Helper Functions
-function qwe {
-    exit
+function rem {
+	param (
+		[string[]]$files
+	)
+
+	foreach ($file in $files) { mv $file ~/.trash/$file }
 }
+
+function tr {
+	param (
+		[switch]$c, 	# Check for files in trash
+		[switch]$r,		# Restore file to current directory
+		[switch]$e,		# Empty trash
+		[string]$file,
+		[string]$path
+	)
+
+	$file_check = ls ~/.trash
+	if (-not $file_check) { wh "`tTrash is empty"; return; }
+
+	if ($c) { ls ~/.trash }
+	elseif ($r -and $file -and $path) { mv ~/.trash/$file $path }
+	elseif ($e) { rm -rf ~/.trash/* }
+	else { Write-Error "Proper arguments were not specified"; return; }
+}
+
+# >>==========>> Helper Functions
+function qwe { exit }
 
 function shell {
     param (
-	[Parameter(ValueFromRemainingArguments = $true)]
-	[string]$args
+		[string]$args_
     )
-    if ($args -eq "") {
-	nix-shell --command pwsh
+
+    if ($args_ -eq "") {
+		nix-shell --command pwsh
     } else {
-	$args1 = $args.Split(' ').Trim()
-	nix-shell --command pwsh -p $args1
+		$args1 = $args_.Split(' ').Trim()
+		nix-shell -p $args1 --command pwsh
     }
 }
 
@@ -322,28 +343,25 @@ function p_split {
     param(
 	    [string[]]$item = @(':')
 	 )
+	
 	$env:PATH -split $item | ForEach-Object {$_}
 }
 
-function psrvr {
-    param (
-	    [int]$port = 8000 # Default value
-	  )
-
-python -m http.server $port
-}
+function psrvr { python ~/Documents/Code/custom_server.py }
 
 function lcltnl {
     Param (
 	    [int]$port = 8000
-	  )
+	)
+	
 	cloudflared tunnel --url localhost:$port
 }
 
 function stop_proc {
     Param (
 	    [string]$process
-	  )
+	)
+
 	Get-Process $process | Stop-Process -Force
 }
 
@@ -351,116 +369,201 @@ function conv_hex {
     param (
 	[string[]]$values
     )
+
     $colors = $values.Split(" ")
-
     wh ""
-    foreach ($color in $colors) {
-	$hex = $color.Split("#")[-1]
-	$r = [Convert]::ToInt32($hex.Substring(0,2), 16)
-	$g = [Convert]::ToInt32($hex.Substring(2,2), 16)
-	$b = [Convert]::ToInt32($hex.Substring(4,2), 16)
 
-	wh "`e[48;2;${r};${g};${b}m      `e[0m │ HEX: #${hex}"
+    foreach ($color in $colors) {
+		$hex = $color.Split("#")[-1]
+		$r = [Convert]::ToInt32($hex.Substring(0,2), 16)
+		$g = [Convert]::ToInt32($hex.Substring(2,2), 16)
+		$b = [Convert]::ToInt32($hex.Substring(4,2), 16)
+
+		wh "`e[48;2;${r};${g};${b}m      `e[0m │ HEX: #${hex}"
     }
 }
 
 function hta {
     param (
-	[string]$hex
+		[string]$hex
     )
 
     $text = ""
     for ($i = 0; $i -lt $hex.Length; $i += 2) {
-	$char = [char]([Convert]::ToInt32($hex.Substring($i, 2), 16))
-	$text += $char
+		$char = [char]([Convert]::ToInt32($hex.Substring($i, 2), 16))
+		$text += $char
     }
     return $text
 }
 
-function rndev {
+function rnd { # re-name drive
     param (
-	[switch]$h,
-	[switch]$info,
-	[string]$ftype,
-	[string]$dev_name,
-	[string]$new_name
+		[switch]$h,
+		[switch]$info,
+		[string]$ftype,
+		[string]$dev_name,
+		[string]$new_name
     )
 
     if ( $h ) {
-	wh "usage: [ PARAMS... ] [ -h ] [ -info ]"
-	wh "`nPARAMS: | All parameters are necessary |"
-	wh "[ filesystem ]`tIn this, the filesystem of the device should be written`n`tAccepted formats are 'fat32', 'vfat', 'ext2', 'ext3', 'ext4', 'ntfs'`n"
-	wh "[ /dev/name ]`tIn this, the device name of the device should be written`n`tExample: /dev/sda1, /dev/sdc3 etc.`n"
-	wh "[ new_name ]`tIn this, the new name that will be given to the drive should be written`n`tExample: 'New Drive', 'something different' etc."
-	wh "`nFLAGS:"
-	wh "-h`tDisplays this help message"
-	wh "-info`tDisplays all info on every connected storage device"
+		wh "usage: [ PARAMS... ] [ -h ] [ -info ]"
+
+		wh "`nPARAMS: | All parameters are necessary |"
+
+		wh "`n[ filesystem ]`tIn this, the filesystem of the device should be written`n`t" +
+			"Accepted formats are 'fat32', 'vfat', 'ext2', 'ext3', 'ext4', 'ntfs'"
+
+		wh "`n[ /dev/name ]`tIn this, the device name of the device should be written`n`t" +
+			"Example: /dev/sda1, /dev/sdc3 etc."
+
+		wh "`n[ new_name ]`tIn this, the new name that will be given to the drive should be written`n`t" +
+			"Example: 'New Drive', 'something different' etc."
+
+		wh "`nFLAGS:"
+		wh "-h`tDisplays this help message"
+		wh "-info`tDisplays all info on every connected storage device"
     }
     elseif ( $info ) {
-	blkid | sort | awk '{print $1; for (i=2; i<=NF; i++) printf "%s%s", $i, (i==NF ? "" : OFS); print ""; print ""}' | sed 's/://'}
+		blkid | sort | awk '{print $1; for (i=2; i<=NF; i++)' +
+		'printf "%s%s", $i, (i==NF ? "" : OFS); print ""; print ""}' | sed 's/://'
+	}
     elseif ( $ftype -eq "" -and $dev_name -eq "" -and $new_name -eq "" ) {
-	wh "No parameters were provided, use -h for help"
+		wh "No parameters were provided, use -h for help"
     }
     else {
-	try { sudo umount $dev_name }
-	catch { Write-Error "Failed to unmount $dev_name. Ensure its not in use"; return }
+		try { sudo umount $dev_name }
+		catch { Write-Error "Failed to unmount $dev_name. Ensure its not in use"; return; }
 
-	if ( $ftype -eq "fat32" -or "vfat" ) { sudo mlabel "-i" $dev_name "::$new_name" }
-	elseif ( $ftype -eq "ext2" -or $ftype -eq "ext3" -or $ftype -eq "ext4" ) { sudo e2label $dev_name $new_name }
-	elseif ( $ftype -eq "ntfs" ) { sudo ntfslabel $dev_name $new_name }
-	else { Write-Error "Unsupported filesystem type: $ftype`n" }
+		if ( $ftype -eq "fat32" -or "vfat" ) { sudo mlabel "-i" $dev_name "::$new_name" }
+		elseif ( $ftype -eq "ext2" -or $ftype -eq "ext3" -or $ftype -eq "ext4" ) { sudo e2label $dev_name $new_name }
+		elseif ( $ftype -eq "ntfs" ) { sudo ntfslabel $dev_name $new_name }
+		else { Write-Error "Unsupported filesystem type: $ftype`n" }
     }
 }
 
-function csn {
+function nm { # new mount
     param (
-	[switch]$o,
-	[switch]$n
+		[switch]$h,
+		[switch]$info,
+		[string]$device,
+		[string]$dir_name
     )
-    if ($o) {
-	mv 'slock.c' '11slock.c'
-	mv 'config.def.h' '11config.def.h'
-	mv 'config.mk' '11config.mk'
 
-	mv 'orig.c' 'slock.c'
-	mv 'orig.h' 'config.def.h'
-	mv 'orig.mk' 'config.mk'
-    } elseif ($n) {
-	mv 'slock.c' 'orig.c'
-	mv 'config.def.h' 'orig.h'
-	mv 'config.mk' 'orig.mk'
+	$hostname = hostname
+    $path = "/run/media/$hostname/$dir_name"
 
-	mv '11slock.c' 'slock.c'
-	mv '11config.def.h' 'config.def.h'
-	mv '11config.mk' 'config.mk'
-    }
+	if ( $h ) {
+		wh "usage: [ PARAMS... ] [ -h ] [ -info ]"
+		wh "example: nm /dev/dev_name /path/to/destination"
+
+		wh "`nPARAMS:"
+
+		wh "`ndev_name:`tThis is the device that you are trying to connect,`n`t" +
+			"it can be found out with -info, just look for the device`n`t" +
+			"with the same size as the drive you have attached"
+
+		wh "`ndestination:`tThis is just the folder to which the external device`n`t" +
+			"will be connecting to, it can be named anything"
+		return
+	} elseif ( $info ) { lsblk; return; }
+
+    $uid = id -u
+    if ( $uid -ne "0" ) { Write-Error "Error: User must be root to use nmount"; return; }
+	if ( -not $dir_name -and -not $device ) { Write-Error "Error: No arguments were specified, use -h for details"; return; }
+
+    try {
+		mkdir -p $path
+		mount $device $path
+    } catch { Write-Error "Device $device could not be mounted to $dir_name"; return; }
+
+    Write-Host "Device $device was mounted to $dir_name"
 }
 
-function rfd {
+function fsr { # file search from the root dir
     param (
 	[string]$arg
     )
 
     $loc = Get-Location
     cd /
-    fd $arg
+    rg --file $arg
     cd $loc
 }
 
-function nkl {
+function acodes {
+    wh "`e[40m        `e[0m | 40"
+    wh "`e[41m        `e[0m | 41"
+    wh "`e[42m        `e[0m | 42"
+    wh "`e[43m        `e[0m | 43"
+    wh "`e[44m        `e[0m | 44"
+    wh "`e[45m        `e[0m | 45"
+    wh "`e[46m        `e[0m | 46"
+    wh "`e[47m        `e[0m | 47"
+    wh "`e[48m        `e[0m | 48"
+}
+
+function sound {
     param (
-	[string]$file = ""
+	[int]$p
     )
 
-    if ($file) {
-	$loc = Get-Location
-	cd
-	nvim $loc'/'$file
-	cd $loc
-    } else {
-	$loc = Get-Location
-	cd
-	nvim
-	cd $loc
+    if (-not $p) {
+	Write-Error "No argument was specified"
     }
+
+    pactl set-sink-volume @DEFAULT_SINK@ ${p}%
+}
+
+function jl {
+    param (
+	[switch]$l,
+	[switch]$zs,
+	[string[]]$obj
+    )
+
+    if ($l -and -not $obj) {
+
+	if (Job) { Job }
+	else {Write-Host "There are no jobs open"}
+    }
+
+    elseif ($l -and $obj) {
+
+	if (Job) { Job | Select-Object $obj }
+	else {Write-Host "There are no jobs open"}
+    }
+
+    elseif ($zs) {
+	Job | Where-Object {$_.command -eq "zig std"} | Stop-Job
+	Job | Where-Object {$_.command -eq "zig std"} | Remove-Job
+
+    } else { Write-Error "Incorrect parameters were given" }
+}
+
+function cloc {
+    get-location | set-clipboard
+}
+
+function update {
+    param (
+		[switch]$f,
+		[string]$config_name
+    )
+
+    Write-Host "`e[2J`e[H"
+    if ( -not $f -and -not $config_name )
+		{ Write-Error "Config name was not specified..."; return; }
+
+    elseif ( -not $f -and $config_name ) {
+		Write-Host "Updating System...`n"
+		sudo nixos-rebuild switch --flake /home/nixos/nixos#$config_name --impure
+
+    } elseif ( $f -and $config_name ) {
+		Write-Host "Updating Flake and System...`n"
+		sudo nix flake update --flake /home/nixos/nixos --impure
+		sudo nixos-rebuild switch --flake /home/nixos/nixos#$config_name --impure
+
+    } else { Write-Error "Proper parameters were not given"; return; }
+
+	pegh
 }
