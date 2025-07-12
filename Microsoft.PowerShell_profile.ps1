@@ -155,7 +155,6 @@ function codes {
 
 # >>==========>> Github Functions
 function gcr {
-
     param (
 		[switch]$e
     )
@@ -226,7 +225,6 @@ function header { #╭╮╰╯│─├
     $spacing = $width - $name_len
     $content = (" " * [int]($spacing/2)) + $name + (" " * [int]($spacing/2))
 
-    Write-Host "`e[2J`e[H"
     wh @"
 
 	    ╭${border}╮
@@ -236,16 +234,19 @@ function header { #╭╮╰╯│─├
 }
 
 function pegh {
+    write-host "`e[2J`e[H"
     header "Pushing Neovim Config"
     cd "/home/nixos/nixos/user_configs/nvim_config"
     gss
     pgh
 
+    write-host "`e[2J`e[H"
     header "Pushing Powershell Config"
     cd "/home/nixos/nixos/user_configs/pwsh_config"
     gss
     pgh
 
+    write-host "`e[2J`e[H"
     header "Pushing NixOS Config"
     cd "/home/nixos/nixos"
     gss
@@ -269,27 +270,22 @@ function ssall {
 # >>==========>> Editing Functions
 function mkfile {
     param (
-	[string]$dir,
-	[string[]]$names
+		[string]$dir,
+		[string[]]$names
     )
     
-    foreach ($name in $names) {
-	New-Item -Path $dir -Name $name -ItemType "File"
-    }
+    foreach ($name in $names) { New-Item -Path $dir -Name $name -ItemType "File" }
 }
 
 function rmit {
     param (
-	[switch]$r,
-	[string[]]$names
+		[switch]$r,
+		[string[]]$names
     )
 
     foreach ($name in $names) {
-	if ($r) {
-	    rm -r *$name*
-	} else {
-	    rm *$name*
-	}
+		if ($r) { rm -r *$name* }
+		else { rm *$name* }
     }
 }
 
@@ -327,9 +323,8 @@ function shell {
 		[string]$args_
     )
 
-    if ($args_ -eq "") {
-		nix-shell --command pwsh
-    } else {
+    if ($args_ -eq "") { nix-shell --command pwsh }
+	else {
 		$args1 = $args_.Split(' ').Trim()
 		nix-shell -p $args1 --command pwsh
     }
@@ -363,7 +358,7 @@ function stop_proc {
 
 function conv_hex {
     param (
-	[string[]]$values
+		[string[]]$values
     )
 
     $colors = $values.Split(" ")
@@ -461,6 +456,7 @@ function nm { # new mount
 		wh "`ndestination:`tThis is just the folder to which the external device`n`t" +
 			"will be connecting to, it can be named anything"
 		return
+
 	} elseif ( $info ) { lsblk; return; }
 
     $uid = id -u
@@ -514,32 +510,6 @@ function sound {
 
     if (-not $p) { Write-Error "No argument was specified" }
     pactl set-sink-volume @DEFAULT_SINK@ ${p}%
-}
-
-function jl {
-    param (
-		[switch]$l,
-		[switch]$zs,
-		[string[]]$obj
-    )
-
-    if ($l -and -not $obj) {
-
-		if (Job) { Job }
-		else { Write-Host "There are no jobs open" }
-    }
-
-    elseif ($l -and $obj) {
-
-		if (Job) { Job | Select-Object $obj }
-		else { Write-Host "There are no jobs open" }
-    }
-
-    elseif ($zs) {
-		Job | Where-Object {$_.command -eq "zig std"} | Stop-Job
-		Job | Where-Object {$_.command -eq "zig std"} | Remove-Job
-
-    } else { Write-Error "Incorrect parameters were given" }
 }
 
 function cloc { get-location | set-clipboard }
