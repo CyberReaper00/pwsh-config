@@ -4,36 +4,31 @@ Write-Host "Powershell Has Initiated" -Foreground DarkBlue
 Set-PSReadLineKeyHandler -Key Tab -Function Complete
 Set-PSReadLineKeyHandler -Key 'Alt+p' -Function AcceptSuggestion
 
+# >>==========>> Aliases
+Set-Alias seal Set-Alias
+seal rnit Rename-Item
+seal show Get-ChildItem
+seal b cd..
+seal wh Write-Host
 
-function clsys {
-    param (
-	[string]$config_name
-    )
+# >>==========>> Customization
 
-    if (-not $config_name)
-	{ Write-Error "Config name was not specified..."; return; }
-    
-    sudo nix-collect-garbage -d
-    sudo nixos-rebuild boot --flake /home/nixos/nixos#$config_name --impure
-}
-
-#╭╮╰╯│─├
 # Shell Instance Counter
 function shell_depth {
     $depth = 0
     $crnt_pid = $PID 
 
     while ($true) {
-	$ppid = (Get-Content "/proc/$crnt_pid/status" | Where-Object { $_ -like "PPid:*" }) -replace 'PPid:\s*', ''
-	if (-not (Test-Path "/proc/$ppid")) { break }
+		$ppid = (Get-Content "/proc/$crnt_pid/status" | Where-Object { $_ -like "PPid:*" }) -replace 'PPid:\s*', ''
+		if (-not (Test-Path "/proc/$ppid")) { break }
 
-	$parent = (Get-Content "/proc/$ppid/comm" -ErrorAction SilentlyContinue)
-	if ($parent -eq "pwsh") {
-	    $depth++
-	    $crnt_pid = $ppid
-	} else {
-	    break
-	}
+		$parent = (Get-Content "/proc/$ppid/comm" -ErrorAction SilentlyContinue)
+		if ($parent -eq "pwsh") {
+			$depth++
+			$crnt_pid = $ppid
+		} else {
+			break
+		}
     }
 
     return $depth
@@ -41,9 +36,9 @@ function shell_depth {
 
 function prompt_change {
     param (
-	[int]$color,
-	[string]$username,
-	[int]$depth_val
+		[int]$color,
+		[string]$username,
+		[int]$depth_val
    )
 
     "`n`e[1;${color}m<| ||===|$username|===|$depth_val|===$PWD/===|| |>`e[0m`n`n"
@@ -54,24 +49,17 @@ $depth = shell_depth
 $nix_check = $env:IN_NIX_SHELL
 function prompt {
     if ($nix_check) {
-	prompt_change 32 "nix-shell" $depth
+		prompt_change 32 "nix-shell" $depth
     } else {
-	if ($user -eq "nixos") {
-	    prompt_change 34 $user $depth
-	} elseif ($user -eq "root") {
-	    prompt_change 31 $user $depth
-	}
+		if ($user -eq "nixos") {
+			prompt_change 34 $user $depth
+		} elseif ($user -eq "root") {
+			prompt_change 31 $user $depth
+		}
     }
 }
-# >>==========>> Aliases
-Set-Alias seal Set-Alias
-seal rnit Rename-Item
-seal show Get-ChildItem
-seal B cd..
-seal wh Write-Host
 
 # >>==========>> Traversal Functions
-
 function open_editor {
     param (
 	    [string]$editor,
@@ -169,7 +157,7 @@ function codes {
 function gcr {
 
     param (
-	[switch]$e
+		[switch]$e
     )
 
     $link = (Read-Host 'Enter remote repo link').Trim()
@@ -179,10 +167,10 @@ function gcr {
     git remote add origin $link
 
     if ($e) {
-	git pull --rebase origin main
-	git add .
-	git commit -m "New commit"
-	git push --set-upstream origin main
+		git pull --rebase origin main
+		git add .
+		git commit -m "New commit"
+		git push --set-upstream origin main
     }
 }
 
@@ -201,13 +189,9 @@ function gpo {
 		$branch = Read-Host 'Enter Branch'
 		git push -u origin $branch
 
-		if ($LASTEXITCODE -eq 0) {
-			break
-		} elseif ($branch -eq "") {
-			break
-		} else {
-			wh "An error occurred, try again"
-		}
+		if ($LASTEXITCODE -eq 0) { break }
+		elseif ($branch -eq "") { break }
+		else { wh "An error occurred, try again" }
     }
 }
 
@@ -216,10 +200,22 @@ function gss { git status }
 function pgh {
     gadd
     gcomm
+
+	wh "`nPushing to github"
     gpo
+
+	wh "`nRepo push was successful"
+	Start-Sleep -Seconds 1
 }
 
-function header {
+function pnver {
+	$version = read-host "Enter version number"
+	pgh
+	git tag -a $version -m " "
+	git push --tags
+}
+
+function header { #╭╮╰╯│─├
     param (
 		[string]$name
     )
@@ -481,67 +477,84 @@ function nm { # new mount
 
 function fsr { # file search from the root dir
     param (
-	[string]$arg
+		[string]$arg
     )
 
-    $loc = Get-Location
+    $loc = get-location
     cd /
-    rg --file $arg
+    find . -name $arg
     cd $loc
 }
 
 function acodes {
-    wh "`e[40m        `e[0m | 40"
-    wh "`e[41m        `e[0m | 41"
-    wh "`e[42m        `e[0m | 42"
-    wh "`e[43m        `e[0m | 43"
-    wh "`e[44m        `e[0m | 44"
-    wh "`e[45m        `e[0m | 45"
-    wh "`e[46m        `e[0m | 46"
-    wh "`e[47m        `e[0m | 47"
-    wh "`e[48m        `e[0m | 48"
+	param (
+		[int]$mode
+	)
+
+	if ( $mode -eq $null ) { write-error "No mode was specified"; return; }
+	if ( $mode -eq 4 -or $mode -eq 10 ) { $preview = "        " }
+	else { $preview = "Sample Text" }
+
+    wh "`e[${mode}0m${preview}`e[0m │ ${mode}0"
+    wh "`e[${mode}1m${preview}`e[0m │ ${mode}1"
+    wh "`e[${mode}2m${preview}`e[0m │ ${mode}2"
+    wh "`e[${mode}3m${preview}`e[0m │ ${mode}3"
+    wh "`e[${mode}4m${preview}`e[0m │ ${mode}4"
+    wh "`e[${mode}5m${preview}`e[0m │ ${mode}5"
+    wh "`e[${mode}6m${preview}`e[0m │ ${mode}6"
+    wh "`e[${mode}7m${preview}`e[0m │ ${mode}7"
+    wh "`e[${mode}8m${preview}`e[0m │ ${mode}8"
+    wh "`e[${mode}9m${preview}`e[0m │ ${mode}9"
 }
 
 function sound {
     param (
-	[int]$p
+		[int]$p
     )
 
-    if (-not $p) {
-	Write-Error "No argument was specified"
-    }
-
+    if (-not $p) { Write-Error "No argument was specified" }
     pactl set-sink-volume @DEFAULT_SINK@ ${p}%
 }
 
 function jl {
     param (
-	[switch]$l,
-	[switch]$zs,
-	[string[]]$obj
+		[switch]$l,
+		[switch]$zs,
+		[string[]]$obj
     )
 
     if ($l -and -not $obj) {
 
-	if (Job) { Job }
-	else {Write-Host "There are no jobs open"}
+		if (Job) { Job }
+		else { Write-Host "There are no jobs open" }
     }
 
     elseif ($l -and $obj) {
 
-	if (Job) { Job | Select-Object $obj }
-	else {Write-Host "There are no jobs open"}
+		if (Job) { Job | Select-Object $obj }
+		else { Write-Host "There are no jobs open" }
     }
 
     elseif ($zs) {
-	Job | Where-Object {$_.command -eq "zig std"} | Stop-Job
-	Job | Where-Object {$_.command -eq "zig std"} | Remove-Job
+		Job | Where-Object {$_.command -eq "zig std"} | Stop-Job
+		Job | Where-Object {$_.command -eq "zig std"} | Remove-Job
 
     } else { Write-Error "Incorrect parameters were given" }
 }
 
-function cloc {
-    get-location | set-clipboard
+function cloc { get-location | set-clipboard }
+
+# >>==========>> Nix functions
+function clsys {
+    param (
+		[string]$config_name
+    )
+
+    if (-not $config_name)
+	{ Write-Error "Config name was not specified..."; return; }
+    
+    sudo nix-collect-garbage -d
+    sudo nixos-rebuild boot --flake /home/nixos/nixos#$config_name --impure
 }
 
 function update {
@@ -562,8 +575,7 @@ function update {
 		Write-Host "Updating Flake and System...`n"
 		sudo nix flake update --flake /home/nixos/nixos --impure
 		sudo nixos-rebuild switch --flake /home/nixos/nixos#$config_name --impure
+		pegh
 
     } else { Write-Error "Proper parameters were not given"; return; }
-
-	pegh
 }
