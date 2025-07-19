@@ -153,6 +153,35 @@ function codes {
     ls
 }
 
+function gt {
+	param (
+		[string]$loc
+	)
+
+	if ( -not $loc ) { write-error "No argument was given"; return; }
+
+	cd
+	$places = fd $loc
+    for ($i = 0; $i -lt $places.Count; $i++) { write-host "[$($i+1)] $($places[$i])" }
+	write-host ""
+
+	$choice = ""
+	for ($choice.GetType().Name -ne "Int32") {
+
+		$input_ = read-host "Choose location"
+		try	  { $choice = [Int32]$input_ }
+		catch { write-error "Value must be a number, try again..."; continue; }
+
+		if ( [int]$input_ -gt $places.Count ) { write-error "Value out of bounds..."; continue; }
+		elseif ( [int]$input_ -eq 0 ) { write-error "Value out of bounds"; continue; }
+		break
+	}
+
+	$path = $places[$choice - 1]
+	$target = split-path -path $path -parent
+	cd $target
+}
+
 # >>==========>> Github Functions
 function gcr {
     param (
@@ -527,7 +556,7 @@ function clsys {
     sudo nixos-rebuild boot --flake /home/nixos/nixos#$config_name --impure
 }
 
-function update {
+function switch_ {
     param (
 		[switch]$f,
 		[string]$config_name
