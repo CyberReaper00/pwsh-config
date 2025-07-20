@@ -161,7 +161,7 @@ function gt {
 	if ( -not $loc ) { write-error "No argument was given"; return; }
 
 	cd
-	$places = fd $loc
+	$places = fd --hidden $loc
     for ($i = 0; $i -lt $places.Count; $i++) { write-host "[$($i+1)] $($places[$i])" }
 	write-host ""
 
@@ -556,7 +556,7 @@ function clsys {
     sudo nixos-rebuild boot --flake /home/nixos/nixos#$config_name --impure
 }
 
-function switch_ {
+function switch: {
     param (
 		[switch]$f,
 		[string]$config_name
