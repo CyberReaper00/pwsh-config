@@ -9,7 +9,6 @@ Set-Alias seal Set-Alias
 seal rnit Rename-Item
 seal show Get-ChildItem
 seal b cd..
-seal wh Write-Host
 
 # >>==========>> Customization
 
@@ -51,135 +50,165 @@ function prompt {
     if ($nix_check) {
 		prompt_change 32 "nix-shell" $depth
     } else {
-		if ($user -eq "nixos") {
-			prompt_change 34 $user $depth
-		} elseif ($user -eq "root") {
-			prompt_change 31 $user $depth
-		}
+		if ($user -eq "nixos") { prompt_change 34 $user $depth }
+		elseif ($user -eq "root") { prompt_change 31 $user $depth }
     }
 }
 
 # >>==========>> Traversal Functions
-function open_editor {
-    param (
-	    [string]$editor,
-	    [string]$flag
-	  )
-
-	if ($flag) {
-	    $matched = show -File *$flag*
-		if ($matched) {
-		    & $editor $matched.Fullname
-		} else {
-		    wh "`n`tNo such file exists`n"
-		}
-	} else {
-	    wh "`n`tPlease specify a file to open`n"
-	}
-}
-
 function format {
     param (
-	    [int]$w_len = 16,
 	    [object[]]$items
 	  )
 
+	$len = 16
 	if ($items -and $items.Count -gt 0) {
 	    $terminal_width = [math]::Floor($Host.UI.RawUI.BufferSize.Width * 0.98)
-		$current_line = "`n⎪ "
+		$current_line = "`n⎪"
 
 		foreach ($entry in $items) {
 		    $name = $entry.Name
-			if ($name.Length -gt $w_len) {
-			    $name = $name.Substring(0, $w_len - 3) + "..."
-			} elseif ($name.Length -lt $w_len) {
-			    $name = $name.PadRight($w_len)
-			}
+			if ($name.Length -gt $len) { $name = $name.Substring(0, $len - 3) + "..." }
+			elseif ($name.Length -lt $len) { $name = $name.PadRight($len) }
 
 		    if (($current_line.Length + $name.Length) -gt $terminal_width) {
-			wh $current_line
-			    $current_line = "⎪ "
+				write-host $current_line
+			    $current_line = "⎪"
 		    }
 
 		    $current_line += " $name ⎪"
 		}
 
-	    if ($current_line -ne "") { wh $current_line }
-	} else {
-	    wh "`n`tNo such files found`n"
-	}
+	    if ($current_line -ne "") { write-host $current_line }
+
+	} else { write-host "`n`tNo such files found`n" }
 }
 
-function lsd {
-    param (
+function l {
+	param (
+		[switch]$h,
 	    [switch]$s,
-	    [string]$name = @('none'),
-	    [int]$len = 16
-	  )
+		[switch]$d,
+		[switch]$f,
+	    [string]$input_ = @('none')
+	)
 
-	if ($name -eq 'none') {
-	    $matched = show -directory
-		format $len $matched
-	} elseif ($s -and $name) {
-	    show -directory *$name*
-	} else {
-	    cd *$name*
+	if ($input_ -eq 'help') {
+		"usage: [-h] [-s] [-d] [-f] <command>"
+
+		"`n`e[7m COMMANDS `e[0m"
+		"  help`tdisplay this message and exit"
+		"  name`tthe name of the file or directory that you want to open"
+		"`tthis is set to 'none' by default"
+
+		"`n`e[7m OPTIONS `e[0m"
+		"  -h`tthis shows all hidden items in the current directory"
+		"  -s`tthis acts as a search function in conjunction with other"
+		"`toptions"
+		"  -d`tthis is used for showing a list of all visible sub-directories"
+		"`tin the current directory"
+		"  -f`tthis is used for showing a list of all visible files in the"
+		"`tcurrent dierectory"
+		return
 	}
-}
 
-function lsf {
-    param (
-	    [switch]$nv,
-	    [switch]$mp,
-	    [string]$file,
-	    [int]$len = 16
-	  )
+	if ($h) { show -Hidden; return; }
 
-	if ($nv) {
-	    open_editor 'nvim' $file
-	} elseif ($np) {
-	    open_editor 'mousepad' $file
-	} elseif ($file) {
-	    $matched = show -File *$file*
-		format $len $matched
-	} else {
-	    $all_files = show -File
-		format $len $all_files
-	}
+	elseif ($d -and $input_ -eq 'none') {
+	    $list = show -directory
+		format $list
+		return
+
+	} elseif ($f -and $input_ -eq 'none') {
+	    $list = show -file
+		format $list
+		return
+
+	} elseif ($d -and $input_ -ne 'none') {
+		if ($s) { $list = show -directory *$input_*; format $list; return; }
+		$list = show -directory
+		format $list
+		return
+
+	} elseif ($f -and $input_ -ne 'none') {
+		if ($s) { $list = show -file *$input_*; format $list; return; }
+		$list = show -file
+		format $list
+		return
+
+	} elseif ($input_ -eq 'none') { show; return; }
+
+	else { write-error "Proper arguments were not specified, try 'l help'" }
 }
 
 function codes {
     cd "/home/nixos/Documents/Code"
-    ls
+    l
 }
 
 function gt {
 	param (
-		[string]$loc
+		[switch]$r,
+		[switch]$h,
+		[switch]$d,
+		[string]$pat
 	)
 
-	if ( -not $loc ) { write-error "No argument was given"; return; }
+	if ($h) {
+		"usage: [-h] [-r] [-d] <pattern>"
 
-	cd
-	$places = fd --hidden $loc
+		"`n`e[7m PARAMS `e[0m"
+		"  pattern:`tthis is the pattern that gt will search for throughout"
+		"`t`tyour home folder"
+
+		"`n`e[7m OPTIONS `e[0m"
+		"  -h`t`tdisplay this help message and exit"
+		"  -r`t`tswitches the path to search in from '~/' to '/'"
+		"  -d`t`tsearch through all dot files along with the normal files"
+		return
+	}
+
+	if ( -not $pat ) { write-error "No argument was given, use -h for help"; return; }
+
+	if ($r) { cd / }
+	else { cd }
+
+	if ($d) { $places = fd --hidden --full-path $pat }
+	else { $places = fd --full-path $pat }
+
     for ($i = 0; $i -lt $places.Count; $i++) { write-host "[$($i+1)] $($places[$i])" }
-	write-host ""
+	""
 
 	$choice = ""
-	for ($choice.GetType().Name -ne "Int32") {
+	$check = 0
+	while ($check -eq 0) {
 
 		$input_ = read-host "Choose location"
-		try	  { $choice = [Int32]$input_ }
-		catch { write-error "Value must be a number, try again..."; continue; }
+		$inp = @($input_.Substring(0, 1), $input_.Substring(1, $input_.Length - 1))
 
-		if ( [int]$input_ -gt $places.Count ) { write-error "Value out of bounds..."; continue; }
-		elseif ( [int]$input_ -eq 0 ) { write-error "Value out of bounds"; continue; }
-		break
+		if ($inp[0] -eq "d") {
+			$check = 1
+			if ([int]$inp[1] -gt $places.Count -or [int]$inp[1] -le 0)
+				{ write-error "Value out of bounds..."; continue; }
+
+			try	  { $choice = [int]$inp[1] }
+			catch { write-error "Valid option was not given, use -h for help" }
+			break
+
+		} elseif ($inp[0] -match '\d') {
+			$check = 2
+			$choice = [int]$input_
+
+		} else { write-error "Valid option was not given, use -h for help" }
+
 	}
 
 	$path = $places[$choice - 1]
-	$target = split-path -path $path -parent
-	cd $target
+	if ($check -eq 1) {
+		$target = split-path -path $path -parent
+		cd $target
+
+	} elseif ($check -eq 2) { less $path }
 }
 
 # >>==========>> Github Functions
@@ -219,7 +248,7 @@ function gpo {
 
 		if ($LASTEXITCODE -eq 0) { break }
 		elseif ($branch -eq "") { break }
-		else { wh "An error occurred, try again" }
+		else { write-error "An error occurred, try again" }
     }
 }
 
@@ -229,10 +258,10 @@ function pgh {
     gadd
     gcomm
 
-	wh "`nPushing to github"
+	"`nPushing to github"
     gpo
 
-	wh "`nRepo push was successful"
+	"`nRepo push was successful"
 	Start-Sleep -Seconds 1
 }
 
@@ -254,7 +283,7 @@ function header { #╭╮╰╯│─├
     $spacing = $width - $name_len
     $content = (" " * [int]($spacing/2)) + $name + (" " * [int]($spacing/2))
 
-    wh @"
+    write-host @"
 
 	    ╭${border}╮
             │${content}│
@@ -328,20 +357,46 @@ function rem {
 
 function tr {
 	param (
-		[switch]$c, 	# Check for files in trash
+		[switch]$c, 	# Check and show all files in trash
 		[switch]$r,		# Restore file to current directory
 		[switch]$e,		# Empty trash
+		[switch]$h,		# Help
 		[string]$file,
 		[string]$path
 	)
 
+	if ($h) {
+		"usage: [-h] [-c] [-e] [-r] <param>"
+		"e.g. tr -c"
+		"e.g. tr -r file.txt /home/username/folder"
+
+		"`n`e[7m PARAMS `e[0m"
+
+		"  file:`tThe name of the file that is to be restored,"
+		"`tthis can only be used alongside the -r option"
+		"  path:`tThe path in which the file selected is to be"
+		"`trestored"
+
+		"`n`e[7m OPTIONS `e[0m"
+
+		"  -h:`tShow this message and exit"
+
+		"  -c:`tCheck if there are any files in trash, if true then"
+		"`tlist all files, otherwise print message 'Trash is empty'"
+
+		"  -e:`tEmpty the trash"
+
+		"  -r:`tRestore a file from trash"
+		return
+	}
+
 	$file_check = ls ~/.trash
-	if (-not $file_check) { wh "`tTrash is empty"; return; }
+	if (-not $file_check -and $c) { "`tTrash is empty"; return; }
 
 	if ($c) { ls ~/.trash }
 	elseif ($r -and $file -and $path) { mv ~/.trash/$file $path }
 	elseif ($e) { rm -rf ~/.trash/* }
-	else { Write-Error "Proper arguments were not specified"; return; }
+	else { write-error "Proper arguments were not specified, use -h for help"; return; }
 }
 
 # >>==========>> Helper Functions
@@ -359,14 +414,6 @@ function shell {
     }
 }
 
-function p_split {
-    param(
-	    [string[]]$item = @(':')
-	 )
-	
-	$env:PATH -split $item | ForEach-Object {$_}
-}
-
 function psrvr { python ~/Documents/Code/custom_server.py }
 
 function lcltnl {
@@ -377,21 +424,13 @@ function lcltnl {
 	cloudflared tunnel --url localhost:$port
 }
 
-function stop_proc {
-    Param (
-	    [string]$process
-	)
-
-	Get-Process $process | Stop-Process -Force
-}
-
 function conv_hex {
     param (
 		[string[]]$values
     )
 
     $colors = $values.Split(" ")
-    wh ""
+    ""
 
     foreach ($color in $colors) {
 		$hex = $color.Split("#")[-1]
@@ -399,7 +438,7 @@ function conv_hex {
 		$g = [Convert]::ToInt32($hex.Substring(2,2), 16)
 		$b = [Convert]::ToInt32($hex.Substring(4,2), 16)
 
-		wh "`e[48;2;${r};${g};${b}m      `e[0m │ HEX: #${hex}"
+		"`e[48;2;${r};${g};${b}m      `e[0m │ HEX: #${hex}"
     }
 }
 
@@ -419,36 +458,33 @@ function hta {
 function rnd { # re-name drive
     param (
 		[switch]$h,
-		[switch]$info,
+		[switch]$i,
 		[string]$ftype,
 		[string]$dev_name,
 		[string]$new_name
     )
 
     if ( $h ) {
-		wh "usage: [ PARAMS... ] [ -h ] [ -info ]"
+		"usage: [-h] [-i] <params>`n"
+		"e.g. rnd ext4 /dev/sda1 new-device"
 
-		wh "`nPARAMS: | All parameters are necessary |"
+		"`n`e[7m PARAMS `e[0m`n"
 
-		wh "`n[ filesystem ]`tIn this, the filesystem of the device should be written`n`t" +
-			"Accepted formats are 'fat32', 'vfat', 'ext2', 'ext3', 'ext4', 'ntfs'"
+		"  filesystem:`tthe filesystem of the device to be renamed,"
+		"`t`taccepted formats are:"
+		"`t`t  'fat32', 'vfat', 'ext2', 'ext3', 'ext4', 'ntfs'"
+		"  /dev/name:`tthe name of the device that is to be renamed"
+		"  new_name:`tthe new name that will be given to the drive,"
+		"`t`tit can be named anything"
 
-		wh "`n[ /dev/name ]`tIn this, the device name of the device should be written`n`t" +
-			"Example: /dev/sda1, /dev/sdc3 etc."
+		"`n`e[7m OPTIONS `e[0m`n"
 
-		wh "`n[ new_name ]`tIn this, the new name that will be given to the drive should be written`n`t" +
-			"Example: 'New Drive', 'something different' etc."
-
-		wh "`nFLAGS:"
-		wh "-h`tDisplays this help message"
-		wh "-info`tDisplays all info on every connected storage device"
+		"  -h`tdisplay this help and exit"
+		"  -i`tdisplay info on all connected storage devices"
     }
-    elseif ( $info ) {
-		blkid | sort | awk '{print $1; for (i=2; i<=NF; i++)' +
-		'printf "%s%s", $i, (i==NF ? "" : OFS); print ""; print ""}' | sed 's/://'
-	}
+    elseif ( $i ) { lsblk }
     elseif ( $ftype -eq "" -and $dev_name -eq "" -and $new_name -eq "" ) {
-		wh "No parameters were provided, use -h for help"
+		"No parameters were provided, use -h for help"
     }
     else {
 		try { sudo umount $dev_name }
@@ -464,51 +500,45 @@ function rnd { # re-name drive
 function nm { # new mount
     param (
 		[switch]$h,
-		[switch]$info,
+		[switch]$i,
 		[string]$device,
 		[string]$dir_name
     )
+
+    $uid = id -u
+    if ( $uid -ne "0" ) { Write-Error "Error: User must be root to use nmount"; return; }
 
 	$hostname = hostname
     $path = "/run/media/$hostname/$dir_name"
 
 	if ( $h ) {
-		wh "usage: [ PARAMS... ] [ -h ] [ -info ]"
-		wh "example: nm /dev/dev_name /path/to/destination"
+		"usage: [-h] [-i] <params>"
+		"example: nm /dev/dev_name /path/to/destination"
 
-		wh "`nPARAMS:"
+		"`n`e[7m PARAMS `e[0m`n"
 
-		wh "`ndev_name:`tThis is the device that you are trying to connect,`n`t" +
-			"it can be found out with -info, just look for the device`n`t" +
-			"with the same size as the drive you have attached"
+		"  dev_name:`tthis is the device that you are trying to connect,"
+		"`t`tit can be found out with [-i], just look for the device"
+		"`t`twith a similar size as the drive you have attached"
 
-		wh "`ndestination:`tThis is just the folder to which the external device`n`t" +
-			"will be connecting to, it can be named anything"
+		"  destination:`tThis is just the folder to which the external device"
+		"`t`twill be connecting to, it can be named anything"
+
+		"`n`e[7m OPTIONS `e[0m`n"
+		"  -h`tdisplay this help and exit"
+		"  -i`tdisplay device info"
 		return
 
-	} elseif ( $info ) { lsblk; return; }
+	} elseif ( $i ) { lsblk; return; }
 
-    $uid = id -u
-    if ( $uid -ne "0" ) { Write-Error "Error: User must be root to use nmount"; return; }
 	if ( -not $dir_name -and -not $device ) { Write-Error "Error: No arguments were specified, use -h for details"; return; }
-
     try {
 		mkdir -p $path
 		mount $device $path
+
     } catch { Write-Error "Device $device could not be mounted to $dir_name"; return; }
 
     Write-Host "Device $device was mounted to $dir_name"
-}
-
-function fsr { # file search from the root dir
-    param (
-		[string]$arg
-    )
-
-    $loc = get-location
-    cd /
-    find . -name $arg
-    cd $loc
 }
 
 function acodes {
@@ -520,16 +550,16 @@ function acodes {
 	if ( $mode -eq 4 -or $mode -eq 10 ) { $preview = "        " }
 	else { $preview = "Sample Text" }
 
-    wh "`e[${mode}0m${preview}`e[0m │ ${mode}0"
-    wh "`e[${mode}1m${preview}`e[0m │ ${mode}1"
-    wh "`e[${mode}2m${preview}`e[0m │ ${mode}2"
-    wh "`e[${mode}3m${preview}`e[0m │ ${mode}3"
-    wh "`e[${mode}4m${preview}`e[0m │ ${mode}4"
-    wh "`e[${mode}5m${preview}`e[0m │ ${mode}5"
-    wh "`e[${mode}6m${preview}`e[0m │ ${mode}6"
-    wh "`e[${mode}7m${preview}`e[0m │ ${mode}7"
-    wh "`e[${mode}8m${preview}`e[0m │ ${mode}8"
-    wh "`e[${mode}9m${preview}`e[0m │ ${mode}9"
+    "`e[${mode}0m${preview}`e[0m │ ${mode}0"
+    "`e[${mode}1m${preview}`e[0m │ ${mode}1"
+    "`e[${mode}2m${preview}`e[0m │ ${mode}2"
+    "`e[${mode}3m${preview}`e[0m │ ${mode}3"
+    "`e[${mode}4m${preview}`e[0m │ ${mode}4"
+    "`e[${mode}5m${preview}`e[0m │ ${mode}5"
+    "`e[${mode}6m${preview}`e[0m │ ${mode}6"
+    "`e[${mode}7m${preview}`e[0m │ ${mode}7"
+    "`e[${mode}8m${preview}`e[0m │ ${mode}8"
+    "`e[${mode}9m${preview}`e[0m │ ${mode}9"
 }
 
 function sound {
