@@ -562,15 +562,6 @@ function acodes {
     "`e[${mode}9m${preview}`e[0m │ ${mode}9"
 }
 
-function sound {
-    param (
-		[int]$p
-    )
-
-    if (-not $p) { Write-Error "No argument was specified" }
-    pactl set-sink-volume @DEFAULT_SINK@ ${p}%
-}
-
 function cloc { get-location | set-clipboard }
 
 # >>==========>> Nix functions
