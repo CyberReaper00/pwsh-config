@@ -19,7 +19,8 @@ cd ..         -> b
 ```
 ### Prompt Overhaul
 - I wanted a new prompt that actually looked nice or at least different, so i sat down for a few hours and created a new prompt with some useful features and some nice touches
-	![[Pasted image 20250816003512.png|512]]
+	<img width="512" height="auto" alt="Pasted image 20250816003512" src="https://github.com/user-attachments/assets/b9e2bdb1-1893-4614-9054-548f122cc215" />
+
 	
 - The first section shows the current user
 	- My system only has two users, me and root, so i've set it up to when i am logged in the color is blue but when root is logged in it turns red
