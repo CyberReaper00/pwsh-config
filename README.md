@@ -12,16 +12,16 @@ I also placed a simple `Powershell Has Initiated` so that i know when powershell
 - Here are my aliases
 
 ```
-set-alias     -> seal
-rename-item   -> rnit
-get-childitem -> show
-cd ..         -> b
+# sal means set-alias
+sal rnit rename-item
+sal show get-childitem
+sal b cd ..
 ```
 ## Prompt Overhaul
 - I wanted a new prompt that actually looked nice or at least different, so i sat down for a few hours and created a new prompt with some useful features and some nice touches
 	<img width="512" height="auto" alt="Pasted image 20250816003512" src="https://github.com/user-attachments/assets/b9e2bdb1-1893-4614-9054-548f122cc215" />
 
-- The first section shows the current user
+- The first section/box shows the current user
 	- My system only has two users, me and root, so i've set it up to when i am logged in the color is blue but when root is logged in it turns red
 	- There is also a third color of green, but that is not for any user but for a nix-shell
 - The second section shows the depth of the shell
@@ -34,26 +34,18 @@ cd ..         -> b
 - The third section shows the current path
 ## Traversal Functions
 As i said before, aliases cannot hold more than one value so here are all the functions/aliases that i have created
-- `l`
-	- Powershell does not have the `l` command like sh or bash and i really liked the functionality of that so ended up recreating it in powershell, but i did make some tweaks to make it more usable
-- `codes`
-	- Just a `cd` command to take me directly to my folder where i put all my code files
-## Github Functions
 - `gt`
 	- My own custom fuzzy finder so that i can move to any folder on my system with one command
 	- I had thought of creating it from scratch and making a new program but then i realized it would be too much effort for something i can just hack together in the shell
+	- It simply takes a pattern and uses `fd` to search through the system
+		- It has two modes with which i can search through files or just directories
+- `l`
+	- Powershell does not have the `l` command like sh or bash and i really liked the functionality of that so i ended up recreating it in powershell, but i did make some tweaks to make it more usable
+- `prj`
+	- Just a `cd` command to take me directly to my folder where i put all my projects
+## Github Functions
 - `gcr`
 	- This command just creates a new repo with some default settings that i always use
-- `gadd`
-	- git add
-- `gcomm`
-	- git commit -m
-- `gpo`
-	- Pushes the code to a remote origin
-- `gss`
-	- git status
-- `pgh`
-	- Does all of the above
 - `pnver`
 	- 'Push new version', i built this to push new tags for a project when i need to update its versioning
 - `pegh`
@@ -63,6 +55,7 @@ As i said before, aliases cannot hold more than one value so here are all the fu
 ## Editing Functions
 - `mkfile`
 	- I just wanted the commands to create files and dirs to have similar names
+	- Its a simple replacement for touch
 - `rmit`
 	- This allows me to remove multiple items from a dir with pattern matching, instead of my having to type out the entire name of each file
 - `rem`
@@ -94,6 +87,14 @@ As i said before, aliases cannot hold more than one value so here are all the fu
 	- Coloring in both bright and dull colors etc
 - `cloc`
 	- This just gets the current location and then places it in the clipboard
+- `phelp`
+	- Powershell doesnt really have a good help section or manual for the case of checking if a command exists for a random thing i want to do
+	- So i created this function to just get all the commands available in pwsh and then print them out so i can go through them
+- `da`
+	- This is for downloading the audio from a video online using `yt-dlp`
+- `get-fileheader`
+	- This gets the first few bytes from a file and then prints them onto the terminal
+	- The default number of bytes/characters is set to 100, but the number of bytes can be set to something else as an argument
 ## Nix Functions
 - `clsys`
 	- This is a nixos specific function, it checks how much trash and extra programs i have stored on my machine and deletes them all

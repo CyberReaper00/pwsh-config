@@ -5,10 +5,9 @@ Set-PSReadLineKeyHandler -Key Tab -Function Complete
 Set-PSReadLineKeyHandler -Key 'Alt+p' -Function AcceptSuggestion
 
 # >>==========>> Aliases
-Set-Alias seal Set-Alias
-seal rnit Rename-Item
-seal show Get-ChildItem
-seal b cd..
+sal rnit Rename-Item
+sal show Get-ChildItem
+sal b cd..
 
 # >>==========>> Customization
 
@@ -141,74 +140,188 @@ function l {
 	else { write-error "Proper arguments were not specified, try 'l help'" }
 }
 
-function codes {
-    cd "/home/nixos/Documents/Code"
-    l
-}
+function prj { cd "/home/nixos/Documents/Projects"; l; }
 
 function gt {
 	param (
 		[switch]$r,
 		[switch]$h,
 		[switch]$d,
+		[switch]$a,
+
 		[string]$pat
 	)
 
+	# Help menu
 	if ($h) {
-		"usage: [-h] [-r] [-d] <pattern>"
+		"usage: [-h] [-r] [-d] [-a] <pattern>"
 
 		"`n`e[7m PARAMS `e[0m"
 		"  pattern:`tthis is the pattern that gt will search for throughout"
 		"`t`tyour home folder"
 
 		"`n`e[7m OPTIONS `e[0m"
-		"  -h`t`tdisplay this help message and exit"
-		"  -r`t`tswitches the path to search in from '~/' to '/'"
-		"  -d`t`tsearch through all dot files along with the normal files"
+		"  -h`tdisplay this help message and exit"
+		"  -r`tswitches the path to search in, from '~/' to '/'"
+		"  -d`tonly searches through and gives a list of directories"
+		"  -a`tsearch through all dot files along with the normal files"
+
 		return
 	}
 
-	if ( -not $pat ) { write-error "No argument was given, use -h for help"; return; }
+	# Give error if no input is given
+	if ( -not $pat )
+		{ write-error "No argument was given, use -h for help"; return; }
 
+	# Change the starting search directory based on user input
+	# default is set to the home directory
+	$loc = get-location
 	if ($r) { cd / }
-	else { cd }
+	else	{ cd }
 
-	if ($d) { $places = fd --hidden --full-path $pat }
-	else { $places = fd --full-path $pat }
+	# Change the search parameters based on user input
+	# default is set to search only for visible files
+	if ($a) { $places = fd -H -p $pat }
+	else	{ $places = fd -p $pat }
 
-    for ($i = 0; $i -lt $places.Count; $i++) { write-host "[$($i+1)] $($places[$i])" }
-	""
+	# If there are no matches then give error and exit
+	if ($places.Length -eq 0) { write-error "No matches were found"; cd $loc; return; }
 
-	$choice = ""
-	$check = 0
-	while ($check -eq 0) {
+	# Display all the resulting paths with corresponding numbers
+	# This displays the full path upto the last directory
+	if ($d) {
 
-		$input_ = read-host "Choose location"
-		$inp = @($input_.Substring(0, 1), $input_.Substring(1, $input_.Length - 1))
+		$new_paths = @()
+		$dir_paths = @()
 
-		if ($inp[0] -eq "d") {
-			$check = 1
-			if ([int]$inp[1] -gt $places.Count -or [int]$inp[1] -le 0)
-				{ write-error "Value out of bounds..."; continue; }
+		# If there is only one item then check if its a file
+		# If it is a file then print the name and ask for user input
+		# If not then print error and exit
+		if ($places.count -eq 1) {
+			if (test-path -path $places -pathtype container) {
+				$dir_paths = @($places)
+				"[1] $($dir_paths)"
 
-			try	  { $choice = [int]$inp[1] }
-			catch { write-error "Valid option was not given, use -h for help" }
-			break
+			} else { write-error "No matches were found"; cd $loc; return; }
 
-		} elseif ($inp[0] -match '\d') {
-			$check = 2
-			$choice = [int]$input_
+		# If more than one item then sort and organize the list
+		} else {
+			# Gets all the folder paths
+			# Gets all file paths, removes the filename from the end of the path
+			# Combines both into a single list of folder paths
+			foreach($path in $places) {
+				if (test-path -path $path -pathtype container)
+					{ $new_paths += $path }
+				else { $new_paths += split-path -path $path -parent }
+			}
 
-		} else { write-error "Valid option was not given, use -h for help" }
+			$tvar1 = @()
+			$tvar2 = @()
 
+			# Remove all duplicates
+			foreach($path in $new_paths) {
+				$avar = $path.TrimEnd('/')
+				if ($tvar1 -notcontains $avar) { $tvar1 += $avar }
+			}
+
+			# Remove any empty paths
+			for ($i = 0; $i -lt $tvar1.count; $i++) {
+				if ($tvar1[$i].Length -lt 1) { continue }
+				else { $tvar2 += $tvar1[$i] }
+			}
+
+			# Sort everything alphabetically
+			$dir_paths = $tvar2 | sort-object
+		}
+
+		# Display list with less if its length is greater than 15
+		if ($dir_paths.count -gt 15) {
+
+			$stored_paths = @()
+			for ($i = 0; $i -lt $dir_paths.count; $i++)
+				{ $stored_paths += "[$($i+1)] $($dir_paths[$i])" }
+			$stored_paths | less -i
+
+		# Print the list if its length is less than 15
+		} else {
+			for ($i = 0; $i -lt $dir_paths.count; $i++)
+				{ "[$($i+1)] $($dir_paths[$i])" }
+		}
+
+	# Display all the resulting paths with corresponding numbers
+	# This displays the full path
+	} else {
+		$new_paths  = @()
+		$file_paths = @()
+
+		# If there is only one item then check if its a file
+		# If it is a file then print the name and ask for user input
+		# If not then print error and exit
+		if ($places.count -eq 1) {
+			if (test-path -path $places -pathtype leaf) {
+				$file_paths = @($places)
+				"[1] $($file_paths)"
+
+			} else { write-error "No matches were found"; cd $loc; return; }
+
+		# If there is more than one item then remove all folder paths
+		# from the list
+		} else {
+			foreach($path in $places) {
+				if (test-path -path $path -pathtype container) { continue }
+				$new_paths += $path
+			}
+
+			# Sort everything alphabetically
+			$file_paths = @($new_paths | sort-object)
+
+			# Display the list with less if its length is greater than 15
+			if ($file_paths.count -gt 15) {
+
+				$stored_paths = @()
+				for ($i = 0; $i -lt $file_paths.count; $i++)
+					{ $stored_paths += "[$($i+1)] $($file_paths[$i])" }
+				$stored_paths | less -i
+
+			# Print the list if its length is less than 15
+			} else {
+				for ($i = 0; $i -lt $file_paths.count; $i++)
+					{ "[$($i+1)] $($file_paths[$i])" }
+			}
+		}
 	}
 
-	$path = $places[$choice - 1]
-	if ($check -eq 1) {
-		$target = split-path -path $path -parent
-		cd $target
+	# Initialize variable that checks if the user wants to see a file or
+	# go to a directory
+	$check = 0
 
-	} elseif ($check -eq 2) { less $path }
+	# Loop to check if the user gave a correct input, if not then an error displays
+	# and instead of exiting the user is allowed to enter a value again
+	while ($check -eq 0) {
+
+		# Ask the user to choose a location from the list and check
+		# if the value is a number
+		$input_ = read-host "Choose location"
+		try		{ $inp = [int]$input_ }
+		catch	{ write-error "Value must be a number"; continue; }
+
+		# Check if the value is out of bounds
+		if ($inp -gt $places.count -or $inp -le 0)
+			{ write-error "Value out of bounds..."; continue; }
+
+		# Checks that the user wants to access a directory or a file
+		# Gets the location that the user chose
+		if ($d) { $check = 1; $dir_path  = $dir_paths[$inp - 1]; }
+		else	{ $check = 2; $file_path = $file_paths[$inp - 1]; }
+	}
+
+	# When going to a directory, get rid of the filename from the path that was chosen
+	# and go directly to that directory
+	if ($check -eq 1) { cd $dir_path }
+
+	# When going to a file, open it directly to be viewed
+	# Might change later to open with either nvim or less 
+	elseif ($check -eq 2) { less -i $file_path; cd $loc; }
 }
 
 # >>==========>> Github Functions
@@ -231,17 +344,13 @@ function gcr {
     }
 }
 
-function gadd {
-    $files = (Read-Host 'Enter File Names').Split(',').Trim()
-    git add $files
-}
+function pgh {
+    git add .
 
-function gcomm {
-    $message = Read-Host 'Enter Commit Message'
+	$message = read-host "Enter Commit Message"
     git commit -m $message
-}
 
-function gpo {
+	"`nPushing to github"
     while ($true) {
 		$branch = Read-Host 'Enter Branch'
 		git push -u origin $branch
@@ -250,19 +359,9 @@ function gpo {
 		elseif ($branch -eq "") { break }
 		else { write-error "An error occurred, try again" }
     }
-}
-
-function gss { git status }
-
-function pgh {
-    gadd
-    gcomm
-
-	"`nPushing to github"
-    gpo
 
 	"`nRepo push was successful"
-	Start-Sleep -Seconds 1
+	start-sleep -seconds 1
 }
 
 function pnver {
@@ -277,11 +376,11 @@ function header { #╭╮╰╯│─├
 		[string]$name
     )
 
-    $name_len = $name.Length
-    $width = $name_len + 12
-    $border = "─" * $width
-    $spacing = $width - $name_len
-    $content = (" " * [int]($spacing/2)) + $name + (" " * [int]($spacing/2))
+    $name_len	= $name.Length
+    $width 		= $name_len + 12
+    $border 	= "─" * $width
+    $spacing 	= $width - $name_len
+    $content 	= (" " * [int]($spacing/2)) + $name + (" " * [int]($spacing/2))
 
     write-host @"
 
@@ -295,34 +394,34 @@ function pegh {
     write-host "`e[2J`e[H"
     header "Pushing Neovim Config"
     cd "/home/nixos/nixos/user_configs/nvim_config"
-    gss
+    git status
     pgh
 
     write-host "`e[2J`e[H"
     header "Pushing Powershell Config"
     cd "/home/nixos/nixos/user_configs/pwsh_config"
-    gss
+    git status
     pgh
 
     write-host "`e[2J`e[H"
     header "Pushing NixOS Config"
     cd "/home/nixos/nixos"
-    gss
+    git status
     pgh
 }
 
 function ssall {
     header "Checking Neovim Config"
     cd "/home/nixos/nixos/user_configs/nvim_config"
-    gss
+    git status
 
     header "Checking Powershell Config"
     cd "/home/nixos/nixos/user_configs/pwsh_config"
-    gss
+    git status
 
     header "Checking NixOS Config"
     cd "/home/nixos/nixos"
-    gss
+    git status
 }
 
 # >>==========>> Editing Functions
@@ -432,13 +531,37 @@ function conv_hex {
     $colors = $values.Split(" ")
     ""
 
-    foreach ($color in $colors) {
+	foreach ($color in $colors) {
 		$hex = $color.Split("#")[-1]
-		$r = [Convert]::ToInt32($hex.Substring(0,2), 16)
-		$g = [Convert]::ToInt32($hex.Substring(2,2), 16)
-		$b = [Convert]::ToInt32($hex.Substring(4,2), 16)
 
-		"`e[48;2;${r};${g};${b}m      `e[0m │ HEX: #${hex}"
+		if ($hex.Length -eq 6) {
+			$r = [Convert]::ToInt32($hex.Substring(0,2), 16)
+			$g = [Convert]::ToInt32($hex.Substring(2,2), 16)
+			$b = [Convert]::ToInt32($hex.Substring(4,2), 16)
+
+			"`e[48;2;${r};${g};${b}m      `e[0m │ HEX: #${hex}"
+
+		} elseif ($hex.Length -eq 3) {
+			$r = $hex[0]
+			$g = $hex[1]
+			$b = $hex[2]
+
+			try 	{ $r1 = [int]$r+$($r*10) }
+			catch 	{ $r1 = $r+$r }
+
+			try 	{ $g1 = [int]$g+$($g*10) }
+			catch 	{ $g1 = $g+$g }
+
+			try 	{ $b1 = [int]$b+$($b+10) }
+			catch 	{ $b1 = $b+$b }
+
+			$r2 = [Convert]::ToInt32($r1, 16)
+			$g2 = [Convert]::ToInt32($g1, 16)
+			$b2 = [Convert]::ToInt32($b1, 16)
+
+			"`e[48;2;${r2};${g2};${b2}m      `e[0m │ HEX: #${hex}"
+
+		} else { write-error 'Invalid input was defined'; return; }
     }
 }
 
@@ -563,6 +686,54 @@ function acodes {
 }
 
 function cloc { get-location | set-clipboard }
+
+function phelp {
+	[AppDomain]::CurrentDomain.GetAssemblies() | Where-Object {
+		-not $_.IsDynamic -and -not $_.Location.Contains('PowerShell')
+	} | ForEach-Object {
+		try   { $_.GetTypes() }
+		catch { } # Suppress errors by doing nothing in the catch block
+	} | Where-Object {
+		$_.Namespace -eq "System" -and $_.IsClass
+	} | Sort-Object Name | less 
+}
+
+function da {
+	param (
+		[string]$link,
+		[string]$format = 'wav'
+	)
+
+	if (-not $link) { write-error "Link not provided"; return; }
+
+	yt-dlp -x --audio-format $format $link
+}
+
+function Get-FileHeader {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Path,
+		[int]$amount = 100
+    )
+
+    if (-not (Test-Path -Path $Path -PathType Leaf)) {
+        Write-Error "The specified path is not a file or does not exist."
+        return
+    }
+
+    try {
+        # Read the first few bytes from the file as a byte array
+        [byte[]]$bytes = [System.IO.File]::ReadAllBytes($Path) | Select-Object -First $amount
+
+		# Convert the bytes to text and display them in the terminal
+		$text = [System.Text.Encoding]::UTF8.GetString($bytes)
+		"$text"
+
+    } catch {
+        # Catch and display any errors during file access
+        Write-Error "An error occurred while reading the file: $($_.Exception.Message)"
+    }
+}
 
 # >>==========>> Nix functions
 function clsys {
