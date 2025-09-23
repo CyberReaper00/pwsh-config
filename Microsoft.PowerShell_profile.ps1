@@ -175,9 +175,8 @@ function gt {
 
 	# Change the starting search directory based on user input
 	# default is set to the home directory
-	$loc = get-location
-	if ($r) { cd / }
-	else	{ cd }
+	if ($r) { pushd / }
+	else	{ pushd ~ }
 
 	# Change the search parameters based on user input
 	# default is set to search only for visible files
@@ -185,7 +184,7 @@ function gt {
 	else	{ $places = fd -p $pat }
 
 	# If there are no matches then give error and exit
-	if ($places.Length -eq 0) { write-error "No matches were found"; cd $loc; return; }
+	if ($places.Length -eq 0) { write-error "No matches were found"; popd; return; }
 
 	# Display all the resulting paths with corresponding numbers
 	# This displays the full path upto the last directory
@@ -202,7 +201,7 @@ function gt {
 				$dir_paths = @($places)
 				"[1] $($dir_paths)"
 
-			} else { write-error "No matches were found"; cd $loc; return; }
+			} else { write-error "No matches were found"; popd; return; }
 
 		# If more than one item then sort and organize the list
 		} else {
@@ -262,7 +261,7 @@ function gt {
 				$file_paths = @($places)
 				"[1] $($file_paths)"
 
-			} else { write-error "No matches were found"; cd $loc; return; }
+			} else { write-error "No matches were found"; popd; return; }
 
 		# If there is more than one item then remove all folder paths
 		# from the list
@@ -321,7 +320,7 @@ function gt {
 
 	# When going to a file, open it directly to be viewed
 	# Might change later to open with either nvim or less 
-	elseif ($check -eq 2) { less -i $file_path; cd $loc; }
+	elseif ($check -eq 2) { less -i $file_path; popd; }
 }
 
 # >>==========>> Github Functions
@@ -335,12 +334,14 @@ function gcr {
     git init
     git branch -m main
     git remote add origin $link
+	git add .
+	git commit -m 'Initial commit'
 
     if ($e) {
 		git pull --rebase origin main
 		git add .
-		git commit -m "New commit"
-		git push --set-upstream origin main
+		git commit -m 'New commit'
+		git push
     }
 }
 
@@ -698,17 +699,6 @@ function phelp {
 	} | Sort-Object Name | less 
 }
 
-function da {
-	param (
-		[string]$link,
-		[string]$format = 'wav'
-	)
-
-	if (-not $link) { write-error "Link not provided"; return; }
-
-	yt-dlp -x --audio-format $format $link
-}
-
 function Get-FileHeader {
     param(
         [Parameter(Mandatory=$true)]
@@ -733,6 +723,37 @@ function Get-FileHeader {
         # Catch and display any errors during file access
         Write-Error "An error occurred while reading the file: $($_.Exception.Message)"
     }
+}
+
+function da {
+	param (
+		[string]$link,
+		[string]$format = 'wav'
+	)
+
+	if (-not $link) { write-error "Link not provided"; return; }
+
+	pushd /home/nixos/Music/songs
+	/home/nixos/Documents/Projects/yt-dlp/result/bin/yt-dlp -x --audio-format $format $link
+	popd
+}
+
+function upack {
+	param(
+		[switch]$u,
+		[switch]$v
+	)
+
+	if ($v) { $var_info = get-item -path env:YTDLPVER; write-host $var_info.value }
+	if ($u) {
+		$version = read-host "Enter new version"
+		$env:YTDLPVER = "$version"
+
+		pushd /home/nixos/Documents/Projects/yt-dlp
+		nix-build
+
+		popd
+	}
 }
 
 # >>==========>> Nix functions
