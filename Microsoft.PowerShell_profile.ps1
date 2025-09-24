@@ -1,8 +1,7 @@
 # >>==========>> Terminal Greeting
 Write-Host "`e[2J`e[H"
 Write-Host "Powershell Has Initiated" -Foreground DarkBlue
-Set-PSReadLineKeyHandler -Key Tab -Function Complete
-Set-PSReadLineKeyHandler -Key 'Alt+p' -Function AcceptSuggestion
+Set-PSReadLineKeyHandler -Key 'Alt+o' -Function AcceptSuggestion
 
 # >>==========>> Aliases
 sal rnit Rename-Item
@@ -24,9 +23,8 @@ function shell_depth {
 		if ($parent -eq "pwsh") {
 			$depth++
 			$crnt_pid = $ppid
-		} else {
-			break
-		}
+
+		} else { break }
     }
 
     return $depth
@@ -46,8 +44,10 @@ $user = whoami
 $depth = shell_depth
 $nix_check = $env:IN_NIX_SHELL
 function prompt {
+
     if ($nix_check) {
 		prompt_change 32 "nix-shell" $depth
+
     } else {
 		if ($user -eq "nixos") { prompt_change 34 $user $depth }
 		elseif ($user -eq "root") { prompt_change 31 $user $depth }
@@ -326,23 +326,30 @@ function gt {
 # >>==========>> Github Functions
 function gcr {
     param (
-		[switch]$e
+		[switch]$h,
+		[switch]$p
     )
 
-    $link = (Read-Host 'Enter remote repo link').Trim()
+	if ($h) { "usage: [-h] [-p]"; return; }
+
+    $link = (read-host 'Enter remote repo link').Trim()
 
     git init
-    git branch -m main
     git remote add origin $link
-	git add .
-	git commit -m 'Initial commit'
 
-    if ($e) {
+    if ($p) {
 		git pull --rebase origin main
 		git add .
 		git commit -m 'New commit'
 		git push
+		return
     }
+
+    git branch -m main
+	git add .
+	git commit -m 'Initial commit'
+	git push
+
 }
 
 function pgh {
