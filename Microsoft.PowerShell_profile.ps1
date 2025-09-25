@@ -3,10 +3,6 @@
 write-host "Powershell Has Initiated" -Foreground DarkBlue
 Set-PSReadLineKeyHandler -Key 'Alt+o' -Function AcceptNextSuggestionWord
 
-Set-PSReadLineOption -EditMode Vi
-Set-PSReadLineOption -ViModeIndicator Cursor
-Set-PSReadLineKeyHandler -Key 'ctrl+o' -Function ViCommandMode
-
 # >>==========>> Aliases
 sal rnit Rename-Item
 sal show Get-ChildItem
@@ -391,6 +387,7 @@ function pnver {
 
 function header { #╭╮╰╯│─├
     param (
+		[switch]$p,
 		[string]$name
     )
 
@@ -400,21 +397,21 @@ function header { #╭╮╰╯│─├
     $spacing 	= $width - $name_len
     $content 	= (" " * [int]($spacing/2)) + $name + (" " * [int]($spacing/2))
 
-    # if ($name.Contains('pushing')) {
+    if ($p) {
     @"
 
 	    ╭${border}╮
             │${content}│
             ╰${border}╯
 "@
-# 	} else {
-#     @"
-#
-# 	    	╭${border}╮
-#             │${content}│
-#             ╰${border}╯
-# "@
-# 	}
+	} else {
+    @"
+
+	    	╭${border}╮
+            │${content}│
+            ╰${border}╯
+"@
+	}
 }
 
 function get_git_repos {
@@ -459,7 +456,7 @@ function pegh {
 
 	for ($i = 0; $i -lt $folder_names.Length; $i++) {
 		"`e[2J`e[H"
-		header "Pushing $($folder_names[$i])"
+		header -p "Pushing $($folder_names[$i])"
 
 		pushd "~/$($path_names[$i])"
 		git status
