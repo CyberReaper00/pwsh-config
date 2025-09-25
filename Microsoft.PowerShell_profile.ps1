@@ -1,7 +1,11 @@
 # >>==========>> Terminal Greeting
-Write-Host "`e[2J`e[H"
-Write-Host "Powershell Has Initiated" -Foreground DarkBlue
-Set-PSReadLineKeyHandler -Key 'Alt+o' -Function AcceptSuggestion
+"`e[2J`e[H"
+write-host "Powershell Has Initiated" -Foreground DarkBlue
+Set-PSReadLineKeyHandler -Key 'Alt+o' -Function AcceptNextSuggestionWord
+
+Set-PSReadLineOption -EditMode Vi
+Set-PSReadLineOption -ViModeIndicator Cursor
+Set-PSReadLineKeyHandler -Key 'ctrl+o' -Function ViCommandMode
 
 # >>==========>> Aliases
 sal rnit Rename-Item
@@ -149,7 +153,7 @@ function gt {
 		[switch]$d,
 		[switch]$a,
 
-		[string]$pat
+		[string]$pattern
 	)
 
 	# Help menu
@@ -170,7 +174,7 @@ function gt {
 	}
 
 	# Give error if no input is given
-	if ( -not $pat )
+	if ( -not $pattern )
 		{ write-error "No argument was given, use -h for help"; return; }
 
 	# Change the starting search directory based on user input
@@ -180,8 +184,8 @@ function gt {
 
 	# Change the search parameters based on user input
 	# default is set to search only for visible files
-	if ($a) { $places = fd -H -p $pat }
-	else	{ $places = fd -p $pat }
+	if ($a) { $places = fd -H -p --no-ignore "$pattern" }
+	else	{ $places = fd -p --no-ignore "$pattern" }
 
 	# If there are no matches then give error and exit
 	if ($places.Length -eq 0) { write-error "No matches were found"; popd; return; }
@@ -353,11 +357,12 @@ function gcr {
 }
 
 function pgh {
+	git status
     git add .
-
+	"-----------------------------------------"
 	$message = read-host "Enter Commit Message"
     git commit -m $message
-
+	"-----------------------------------------"
 	"`nPushing to github"
     while ($true) {
 		$branch = Read-Host 'Enter Branch'
@@ -367,13 +372,18 @@ function pgh {
 		elseif ($branch -eq "") { break }
 		else { write-error "An error occurred, try again" }
     }
-
+	"-----------------------------------------"
 	"`nRepo push was successful"
 	start-sleep -seconds 1
 }
 
 function pnver {
-	$version = read-host "Enter version number"
+	param (
+		[float]$version
+	)
+
+	if ( -not $version ) { write-error "new version was not provided..."; return; }
+
 	pgh
 	git tag -a $version -m " "
 	git push --tags
@@ -390,46 +400,86 @@ function header { #╭╮╰╯│─├
     $spacing 	= $width - $name_len
     $content 	= (" " * [int]($spacing/2)) + $name + (" " * [int]($spacing/2))
 
-    write-host @"
+    # if ($name.Contains('pushing')) {
+    @"
 
 	    ╭${border}╮
             │${content}│
             ╰${border}╯
 "@
+# 	} else {
+#     @"
+#
+# 	    	╭${border}╮
+#             │${content}│
+#             ╰${border}╯
+# "@
+# 	}
+}
+
+function get_git_repos {
+	$accepted_paths = [System.Collections.ArrayList]::new()
+	$folder_names = $new_names = @()
+
+	pushd ~/
+	$original_places = fd -H -p --no-ignore "\.git$"
+	popd
+
+	$places = foreach ($place in $original_places) {
+		for ($i = 0; $i -lt $place.Length; $i++) {
+			if ($place[$i] -eq ".") { $place[0..($i-1)] -join '' }
+		}
+	}
+
+	foreach ($place in $places) {
+		if ($place[0] -ne ".") {
+			[void]$accepted_paths.Add($place)
+
+			$counter = [System.Collections.ArrayList]::new()
+			for ($i = 0; $i -lt $place.Length; $i++) {
+				if ($place[$i] -eq "/") { [void]$counter.Add($i) }
+			}
+
+			if ($counter[-2] -eq $null) { [void]$counter.Insert(0, -1) }
+			$base_name = ($place[($counter[-2]+1)..($counter[-1]-1)] -join '')
+			$folder_names += $base_name
+		}
+	}
+
+	$textinfo = [System.Threading.Thread]::CurrentThread.CurrentCulture.TextInfo
+	foreach ($folder in $folder_names) {
+		$name_change = $folder.Replace('_', '-')
+		$new_names += $textinfo.ToTitleCase($name_change)
+	}
+	return $new_names,$accepted_paths
 }
 
 function pegh {
-    write-host "`e[2J`e[H"
-    header "Pushing Neovim Config"
-    cd "/home/nixos/nixos/user_configs/nvim_config"
-    git status
-    pgh
+	$folder_names,$path_names = get_git_repos
 
-    write-host "`e[2J`e[H"
-    header "Pushing Powershell Config"
-    cd "/home/nixos/nixos/user_configs/pwsh_config"
-    git status
-    pgh
+	for ($i = 0; $i -lt $folder_names.Length; $i++) {
+		"`e[2J`e[H"
+		header "Pushing $($folder_names[$i])"
 
-    write-host "`e[2J`e[H"
-    header "Pushing NixOS Config"
-    cd "/home/nixos/nixos"
-    git status
-    pgh
+		pushd "~/$($path_names[$i])"
+		git status
+		pgh
+		popd
+	}
 }
 
 function ssall {
-    header "Checking Neovim Config"
-    cd "/home/nixos/nixos/user_configs/nvim_config"
-    git status
+	$folder_names,$path_names = get_git_repos
 
-    header "Checking Powershell Config"
-    cd "/home/nixos/nixos/user_configs/pwsh_config"
-    git status
+	$output = for ($i = 0; $i -lt $folder_names.Length; $i++) {
+		header "Checking $($folder_names[$i])"
 
-    header "Checking NixOS Config"
-    cd "/home/nixos/nixos"
-    git status
+		pushd "~/$($path_names[$i])"
+		git status
+		popd
+	}
+
+	$output | bat --style="header,grid" --theme gruvbox-dark -l meminfo
 }
 
 # >>==========>> Editing Functions
