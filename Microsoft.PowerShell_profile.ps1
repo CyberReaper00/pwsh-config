@@ -239,7 +239,7 @@ function gt {
 			$stored_paths = @()
 			for ($i = 0; $i -lt $dir_paths.count; $i++)
 				{ $stored_paths += "[$($i+1)] $($dir_paths[$i])" }
-			$stored_paths | less -i
+			$stored_paths | bat
 
 		# Print the list if its length is less than 15
 		} else {
@@ -280,7 +280,7 @@ function gt {
 				$stored_paths = @()
 				for ($i = 0; $i -lt $file_paths.count; $i++)
 					{ $stored_paths += "[$($i+1)] $($file_paths[$i])" }
-				$stored_paths | less -i
+				$stored_paths | bat
 
 			# Print the list if its length is less than 15
 			} else {
@@ -354,23 +354,31 @@ function gcr {
 
 function pgh {
 	git status
-    git add .
-	"-----------------------------------------"
-	$message = read-host "Enter Commit Message"
-    git commit -m $message
-	"-----------------------------------------"
-	"`nPushing to github"
-    while ($true) {
-		$branch = Read-Host 'Enter Branch'
-		git push -u origin $branch
+	"`n`n-----------------------------------------"
+	$message = read-host "`n`nEnter Commit Message"
+	
+	if ($message -eq "") { "`n`nSkipping repo..."; start-sleep -seconds 0.5; return; }
 
-		if ($LASTEXITCODE -eq 0) { break }
-		elseif ($branch -eq "") { break }
-		else { write-error "An error occurred, try again" }
-    }
-	"-----------------------------------------"
-	"`nRepo push was successful"
-	start-sleep -seconds 1
+	else {
+		git add .
+		git commit -m $message
+		"`n`n-----------------------------------------"
+		"`n`nPushing to github"
+
+		while ($true) {
+			$branch = read-host 'Enter Branch'
+			git push -u origin $branch
+
+			if ($LASTEXITCODE -eq 0) { break }
+			elseif ($branch -eq "") { break }
+			else { write-error "An error occurred, try again" }
+		}
+
+		"`n`n-----------------------------------------"
+		"`n`nRepo push was successful"
+
+		start-sleep -seconds 0.5
+	}
 }
 
 function pnver {
@@ -451,20 +459,6 @@ function get_git_repos {
 	return $new_names,$accepted_paths
 }
 
-function pegh {
-	$folder_names,$path_names = get_git_repos
-
-	for ($i = 0; $i -lt $folder_names.Length; $i++) {
-		"`e[2J`e[H"
-		header -p "Pushing $($folder_names[$i])"
-
-		pushd "~/$($path_names[$i])"
-		git status
-		pgh
-		popd
-	}
-}
-
 function ssall {
 	$folder_names,$path_names = get_git_repos
 
@@ -477,6 +471,20 @@ function ssall {
 	}
 
 	$output | bat --style="header,grid" --theme gruvbox-dark -l meminfo
+}
+
+function pegh {
+	$folder_names,$path_names = get_git_repos
+
+	for ($i = 0; $i -lt $folder_names.Length; $i++) {
+		"`e[2J`e[H"
+		header -p "Pushing $($folder_names[$i])"
+
+		pushd "~/$($path_names[$i])"
+		git status
+		pgh
+		popd
+	}
 }
 
 # >>==========>> Editing Functions
@@ -568,7 +576,7 @@ function shell {
     }
 }
 
-function psrvr { python ~/Documents/Code/custom_server.py }
+function psrvr { python ~/Documents/Projects/custom_server.py }
 
 function lcltnl {
     Param (
@@ -578,7 +586,7 @@ function lcltnl {
 	cloudflared tunnel --url localhost:$port
 }
 
-function conv_hex {
+function show_hex {
     param (
 		[string[]]$values
     )
@@ -709,35 +717,41 @@ function nm { # new mount
 
 	} elseif ( $i ) { lsblk; return; }
 
-	if ( -not $dir_name -and -not $device ) { Write-Error "Error: No arguments were specified, use -h for details"; return; }
+	if ( -not $dir_name -and -not $device ) { write-error "Error: No arguments were specified, use -h for details"; return; }
     try {
 		mkdir -p $path
 		mount $device $path
 
-    } catch { Write-Error "Device $device could not be mounted to $dir_name"; return; }
+    } catch { write-error "Device $device could not be mounted to $dir_name"; return; }
 
-    Write-Host "Device $device was mounted to $dir_name"
+    "Device $device was mounted to $dir_name"
 }
 
-function acodes {
+function acodes { # ASCII Codes
 	param (
 		[int]$mode
 	)
 
-	if ( $mode -eq $null ) { write-error "No mode was specified"; return; }
-	if ( $mode -eq 4 -or $mode -eq 10 ) { $preview = "        " }
+	if (-not $PSBoundParameters.ContainsKey('mode')) { write-error "No mode was specified"; return; }
+	if ($mode -eq 4 -or $mode -eq 10) { $preview = "        " }
 	else { $preview = "Sample Text" }
 
-    "`e[${mode}0m${preview}`e[0m │ ${mode}0"
-    "`e[${mode}1m${preview}`e[0m │ ${mode}1"
-    "`e[${mode}2m${preview}`e[0m │ ${mode}2"
-    "`e[${mode}3m${preview}`e[0m │ ${mode}3"
-    "`e[${mode}4m${preview}`e[0m │ ${mode}4"
-    "`e[${mode}5m${preview}`e[0m │ ${mode}5"
-    "`e[${mode}6m${preview}`e[0m │ ${mode}6"
-    "`e[${mode}7m${preview}`e[0m │ ${mode}7"
-    "`e[${mode}8m${preview}`e[0m │ ${mode}8"
-    "`e[${mode}9m${preview}`e[0m │ ${mode}9"
+	$preview_distance = "─" * ($preview.Length + 2)
+	$mode_distance = "─" * (($mode).ToString().Length + 3)
+
+	#╭╮╰╯│┤├ ┬ ┴ ─
+	"╭${preview_distance}┬$mode_distance╮"
+    "│ `e[${mode}0m${preview}`e[0m │ ${mode}0 │"
+    "│ `e[${mode}1m${preview}`e[0m │ ${mode}1 │"
+    "│ `e[${mode}2m${preview}`e[0m │ ${mode}2 │"
+    "│ `e[${mode}3m${preview}`e[0m │ ${mode}3 │"
+    "│ `e[${mode}4m${preview}`e[0m │ ${mode}4 │"
+    "│ `e[${mode}5m${preview}`e[0m │ ${mode}5 │"
+    "│ `e[${mode}6m${preview}`e[0m │ ${mode}6 │"
+    "│ `e[${mode}7m${preview}`e[0m │ ${mode}7 │"
+    "│ `e[${mode}8m${preview}`e[0m │ ${mode}8 │"
+    "│ `e[${mode}9m${preview}`e[0m │ ${mode}9 │"
+	"╰${preview_distance}┴$mode_distance╯"
 }
 
 function cloc { get-location | set-clipboard }
@@ -781,33 +795,53 @@ function Get-FileHeader {
 
 function da {
 	param (
+		[switch]$p,
 		[string]$link,
 		[string]$format = 'wav'
 	)
 
+	if ($p -and $link -eq "cp") {
+		set-clipboard "/home/nixos/Documents/Projects/yt-dlp/"
+		return
+	}
+
 	if (-not $link) { write-error "Link not provided"; return; }
 
 	pushd /home/nixos/Music/songs
-	/home/nixos/Documents/Projects/yt-dlp/result/bin/yt-dlp -x --audio-format $format $link
+	/nix/store/hqz4lga5j1qw2v3jvf0aii1801paa7gz-yt-dlp-2025.09.26/bin/yt-dlp -x --audio-format $format $link
 	popd
 }
 
 function upack {
 	param(
+		[switch]$h,
 		[switch]$u,
 		[switch]$v
 	)
 
-	if ($v) { $var_info = get-item -path env:YTDLPVER; write-host $var_info.value }
-	if ($u) {
-		$version = read-host "Enter new version"
-		$env:YTDLPVER = "$version"
+	if ($h) {
+		"usage: [-v] [-u]"
+		"`n`e[7m OPTIONS `e[0m"
+		"`n  -v`tchecks the versions both locally and online then prints them"
+		"`n  -u`tthis just rebuilds the local package.nix file"
+		"`n  NOTE: the local package cannot be updated automatically the hash for"
+		"`tthe latest version must be taken manually and then the package.nix"
+		"`tfile must be updated with the new hash and version"
+		return
+	}
 
+	if ($v) { /nix/store/hqz4lga5j1qw2v3jvf0aii1801paa7gz-yt-dlp-2025.09.26/bin/yt-dlp -U; return; }
+	if ($u) {
 		pushd /home/nixos/Documents/Projects/yt-dlp
 		nix-build
-
 		popd
-	}
+
+	} else { write-error "Invalid arguments, try -h" }
+}
+
+function fil {
+	param ( [string]$name)
+	file $name | sed 's/, /\n/g' | sed 's/^\(.*\)/\t[ \1 ]/g'
 }
 
 # >>==========>> Nix functions
