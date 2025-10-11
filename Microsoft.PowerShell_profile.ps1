@@ -8,6 +8,7 @@ sal rnit Rename-Item
 sal show Get-ChildItem
 sal b cd..
 
+# $env:PATH="$env:PATH:$env HOME/.local/share/applications"
 # >>==========>> Customization
 
 # Shell Instance Counter
@@ -89,7 +90,11 @@ function l {
 	    [switch]$s,
 		[switch]$d,
 		[switch]$f,
-	    [string]$input_ = @('none')
+
+		[switch]$sf,
+		[switch]$sd,
+
+	    [string]$input_ = 'none'
 	)
 
 	if ($input_ -eq 'help') {
@@ -113,7 +118,10 @@ function l {
 
 	if ($h) { show -Hidden; return; }
 
-	elseif ($d -and $input_ -eq 'none') {
+	if ($sd -or ($s -and $d)) { $list = show -directory *$input_*; format $list; return; }
+	if ($sf -or ($s -and $f)) { $list = show -file *$input_*; format $list; return; }
+
+	if ($d -and $input_ -eq 'none') {
 	    $list = show -directory
 		format $list
 		return
@@ -123,24 +131,10 @@ function l {
 		format $list
 		return
 
-	} elseif ($d -and $input_ -ne 'none') {
-		if ($s) { $list = show -directory *$input_*; format $list; return; }
-		$list = show -directory
-		format $list
-		return
-
-	} elseif ($f -and $input_ -ne 'none') {
-		if ($s) { $list = show -file *$input_*; format $list; return; }
-		$list = show -file
-		format $list
-		return
-
 	} elseif ($input_ -eq 'none') { show; return; }
 
 	else { write-error "Proper arguments were not specified, try 'l help'" }
 }
-
-function prj { cd "/home/nixos/Documents/Projects"; l; }
 
 function gt {
 	param (
@@ -175,8 +169,8 @@ function gt {
 
 	# Change the starting search directory based on user input
 	# default is set to the home directory
-	if ($r) { pushd / }
-	else	{ pushd ~ }
+	if ($r) { pushd /; $search_path = '/'; }
+	else	{ pushd ~; $search_path = '~/'; }
 
 	# Change the search parameters based on user input
 	# default is set to search only for visible files
@@ -186,60 +180,30 @@ function gt {
 	# If there are no matches then give error and exit
 	if ($places.Length -eq 0) { write-error "No matches were found"; popd; return; }
 
+	foreach ($place in $places) {
+		if (test-path -path $place -pathtype container) {
+			$folders += @($search_path + $place)
+
+		} else { $files += @($search_path + $place) }
+	}
+
 	# Display all the resulting paths with corresponding numbers
 	# This displays the full path upto the last directory
 	if ($d) {
 
-		$new_paths = @()
-		$dir_paths = @()
+		# Sort everything alphabetically
+		$dir_paths = @($folders | sort-object)
 
-		# If there is only one item then check if its a file
-		# If it is a file then print the name and ask for user input
-		# If not then print error and exit
-		if ($places.count -eq 1) {
-			if (test-path -path $places -pathtype container) {
-				$dir_paths = @($places)
-				"[1] $($dir_paths)"
+		# Print the list immediately if the list only has 1 item
+		if ($dir_paths.count -eq 1) {
+			"[1] $folders"
 
-			} else { write-error "No matches were found"; popd; return; }
-
-		# If more than one item then sort and organize the list
-		} else {
-			# Gets all the folder paths
-			# Gets all file paths, removes the filename from the end of the path
-			# Combines both into a single list of folder paths
-			foreach($path in $places) {
-				if (test-path -path $path -pathtype container)
-					{ $new_paths += $path }
-				else { $new_paths += split-path -path $path -parent }
-			}
-
-			$tvar1 = @()
-			$tvar2 = @()
-
-			# Remove all duplicates
-			foreach($path in $new_paths) {
-				$avar = $path.TrimEnd('/')
-				if ($tvar1 -notcontains $avar) { $tvar1 += $avar }
-			}
-
-			# Remove any empty paths
-			for ($i = 0; $i -lt $tvar1.count; $i++) {
-				if ($tvar1[$i].Length -lt 1) { continue }
-				else { $tvar2 += $tvar1[$i] }
-			}
-
-			# Sort everything alphabetically
-			$dir_paths = $tvar2 | sort-object
-		}
-
-		# Display list with less if its length is greater than 15
-		if ($dir_paths.count -gt 15) {
-
+		# Display list with a pager if its length is greater than 15
+		} elseif ($dir_paths.count -gt 15) {
 			$stored_paths = @()
 			for ($i = 0; $i -lt $dir_paths.count; $i++)
 				{ $stored_paths += "[$($i+1)] $($dir_paths[$i])" }
-			$stored_paths | bat
+			$stored_paths | less
 
 		# Print the list if its length is less than 15
 		} else {
@@ -247,46 +211,28 @@ function gt {
 				{ "[$($i+1)] $($dir_paths[$i])" }
 		}
 
-	# Display all the resulting paths with corresponding numbers
+	# Display all the files with corresponding numbers
 	# This displays the full path
 	} else {
-		$new_paths  = @()
-		$file_paths = @()
 
-		# If there is only one item then check if its a file
-		# If it is a file then print the name and ask for user input
-		# If not then print error and exit
-		if ($places.count -eq 1) {
-			if (test-path -path $places -pathtype leaf) {
-				$file_paths = @($places)
-				"[1] $($file_paths)"
+		# Sort everything alphabetically
+		$file_paths = @($files | sort-object)
 
-			} else { write-error "No matches were found"; popd; return; }
+		# Print the list immediately if the list only has 1 item
+		if ($files.count -eq 1) {
+			"[1] $file_paths"
 
-		# If there is more than one item then remove all folder paths
-		# from the list
+		# Display the list with a pager if its length is greater than 15
+		} elseif ($file_paths.count -gt 15) {
+			$stored_paths = @()
+			for ($i = 0; $i -lt $file_paths.count; $i++)
+				{ $stored_paths += "[$($i+1)] $($file_paths[$i])" }
+			$stored_paths | less
+
+		# Print the list if its length is less than 15
 		} else {
-			foreach($path in $places) {
-				if (test-path -path $path -pathtype container) { continue }
-				$new_paths += $path
-			}
-
-			# Sort everything alphabetically
-			$file_paths = @($new_paths | sort-object)
-
-			# Display the list with less if its length is greater than 15
-			if ($file_paths.count -gt 15) {
-
-				$stored_paths = @()
-				for ($i = 0; $i -lt $file_paths.count; $i++)
-					{ $stored_paths += "[$($i+1)] $($file_paths[$i])" }
-				$stored_paths | bat
-
-			# Print the list if its length is less than 15
-			} else {
-				for ($i = 0; $i -lt $file_paths.count; $i++)
-					{ "[$($i+1)] $($file_paths[$i])" }
-			}
+			for ($i = 0; $i -lt $file_paths.count; $i++)
+				{ "[$($i+1)] $($file_paths[$i])" }
 		}
 	}
 
@@ -298,9 +244,11 @@ function gt {
 	# and instead of exiting the user is allowed to enter a value again
 	while ($check -eq 0) {
 
-		# Ask the user to choose a location from the list and check
-		# if the value is a number
+		# Ask the user to choose a location from the list
 		$input_ = read-host "Choose location"
+		if ($input_ -eq "") { popd; return; }
+
+		# Check if the value is a number
 		try		{ $inp = [int]$input_ }
 		catch	{ write-error "Value must be a number"; continue; }
 
@@ -316,7 +264,7 @@ function gt {
 
 	# When going to a directory, get rid of the filename from the path that was chosen
 	# and go directly to that directory
-	if ($check -eq 1) { cd $dir_path }
+	if ($check -eq 1) { popd; cd $dir_path }
 
 	# When going to a file, open it directly to be viewed
 	# Might change later to open with either nvim or less 
@@ -490,11 +438,10 @@ function pegh {
 # >>==========>> Editing Functions
 function mkfile {
     param (
-		[string]$dir,
 		[string[]]$names
     )
     
-    foreach ($name in $names) { New-Item -Path $dir -Name $name -ItemType "File" }
+    foreach ($name in $names) { New-Item -Path . -Name $name -ItemType "File" }
 }
 
 function rmit {
@@ -563,18 +510,6 @@ function tr {
 
 # >>==========>> Helper Functions
 function qwe { exit }
-
-function shell {
-    param (
-		[string]$args_
-    )
-
-    if ($args_ -eq "") { nix-shell --command pwsh }
-	else {
-		$args1 = $args_.Split(' ').Trim()
-		nix-shell -p $args1 --command pwsh
-    }
-}
 
 function psrvr { python ~/Documents/Projects/custom_server.py }
 
@@ -845,6 +780,18 @@ function fil {
 }
 
 # >>==========>> Nix functions
+function shell {
+    param (
+		[string]$args_
+    )
+
+    if ($args_ -eq "") { nix-shell --command pwsh }
+	else {
+		$args1 = $args_.Split(' ').Trim()
+		nix-shell -p $args1 --command pwsh
+    }
+}
+
 function clsys {
     param (
 		[string]$config_name
@@ -875,7 +822,6 @@ function switch: {
 		Write-Host "Updating Flake and System...`n"
 		sudo nix flake update --flake /home/nixos/nixos --impure
 		sudo nixos-rebuild switch --flake /home/nixos/nixos#$config_name --impure
-		pegh
 
     } else { Write-Error "Proper parameters were not given"; return; }
 }
