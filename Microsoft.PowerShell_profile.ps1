@@ -8,7 +8,6 @@ sal rnit Rename-Item
 sal show Get-ChildItem
 sal b cd..
 
-# $env:PATH="$env:PATH:$env HOME/.local/share/applications"
 # >>==========>> Customization
 
 # Shell Instance Counter
@@ -169,52 +168,53 @@ function gt {
 
 	# Change the starting search directory based on user input
 	# default is set to the home directory
-	if ($r) { pushd /; $search_path = '/'; }
-	else	{ pushd ~; $search_path = '~/'; }
-
-	# Change the search parameters based on user input
-	# default is set to search only for visible files
-	if ($a) { $places = fd -H -p --no-ignore "$pattern" }
-	else	{ $places = fd -p --no-ignore "$pattern" }
-
-	# If there are no matches then give error and exit
-	if ($places.Length -eq 0) { write-error "No matches were found"; popd; return; }
-
-	foreach ($place in $places) {
-		if (test-path -path $place -pathtype container) {
-			$folders += @($search_path + $place)
-
-		} else { $files += @($search_path + $place) }
-	}
-
+	if ($r) { $search_path = '/'; }
+	else	{ $search_path = '~/'; }
+	
 	# Display all the resulting paths with corresponding numbers
 	# This displays the full path upto the last directory
 	if ($d) {
+		# Change the search parameters based on user input
+		# default is set to search only for visible files
+		if ($a) { $places = fd -H -p --no-ignore -t d "$pattern" $search_path }
+		else	{ $places = fd -p --no-ignore -t d "$pattern" $search_path }
+		$folders = @($places)
 
+		# If there are no matches then give error and exit
+		if ($folders.Length -eq 0) { write-error "No matches were found"; return; }
+		
 		# Sort everything alphabetically
 		$dir_paths = @($folders | sort-object)
-
+		
 		# Print the list immediately if the list only has 1 item
 		if ($dir_paths.count -eq 1) {
 			"[1] $folders"
-
+			
 		# Display list with a pager if its length is greater than 15
 		} elseif ($dir_paths.count -gt 15) {
 			$stored_paths = @()
 			for ($i = 0; $i -lt $dir_paths.count; $i++)
 				{ $stored_paths += "[$($i+1)] $($dir_paths[$i])" }
 			$stored_paths | less
-
+			
 		# Print the list if its length is less than 15
 		} else {
 			for ($i = 0; $i -lt $dir_paths.count; $i++)
 				{ "[$($i+1)] $($dir_paths[$i])" }
-		}
+						}
 
 	# Display all the files with corresponding numbers
 	# This displays the full path
 	} else {
+		# Change the search parameters based on user input
+		# default is set to search only for visible files
+		if ($a) { $places = fd -H -p --no-ignore -t f "$pattern" $search_path }
+		else	{ $places = fd -p --no-ignore -t f "$pattern" $search_path }
+		$files = @($places)
 
+		# If there are no matches then give error and exit
+		if ($files.Length -eq 0) { write-error "No matches were found"; return; }
+		
 		# Sort everything alphabetically
 		$file_paths = @($files | sort-object)
 
@@ -246,7 +246,7 @@ function gt {
 
 		# Ask the user to choose a location from the list
 		$input_ = read-host "Choose location"
-		if ($input_ -eq "") { popd; return; }
+		if ($input_ -eq "") { return; }
 
 		# Check if the value is a number
 		try		{ $inp = [int]$input_ }
@@ -264,11 +264,11 @@ function gt {
 
 	# When going to a directory, get rid of the filename from the path that was chosen
 	# and go directly to that directory
-	if ($check -eq 1) { popd; cd $dir_path }
+	if ($check -eq 1) { cd $dir_path }
 
 	# When going to a file, open it directly to be viewed
 	# Might change later to open with either nvim or less 
-	elseif ($check -eq 2) { less -i $file_path; popd; }
+	elseif ($check -eq 2) { less -i $file_path }
 }
 
 # >>==========>> Github Functions
@@ -438,10 +438,12 @@ function pegh {
 # >>==========>> Editing Functions
 function mkfile {
     param (
-		[string[]]$names
+		[string[]]$names,
+		[string]$dir
     )
-    
-    foreach ($name in $names) { New-Item -Path . -Name $name -ItemType "File" }
+
+	if ($dir -eq "") { $dir = "." }
+    foreach ($name in $names) { New-Item -Path $dir -Name $name -ItemType "File" }
 }
 
 function rmit {
