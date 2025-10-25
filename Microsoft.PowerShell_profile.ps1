@@ -188,20 +188,21 @@ function gt {
 		
 		# Print the list immediately if the list only has 1 item
 		if ($dir_paths.count -eq 1) {
-			"[1] $folders"
+			cd $folders[0]
+			return
 			
 		# Display list with a pager if its length is greater than 15
 		} elseif ($dir_paths.count -gt 15) {
 			$stored_paths = @()
 			for ($i = 0; $i -lt $dir_paths.count; $i++)
 				{ $stored_paths += "[$($i+1)] $($dir_paths[$i])" }
-			$stored_paths | less
+			$stored_paths | less -i
 			
 		# Print the list if its length is less than 15
 		} else {
 			for ($i = 0; $i -lt $dir_paths.count; $i++)
 				{ "[$($i+1)] $($dir_paths[$i])" }
-						}
+		}
 
 	# Display all the files with corresponding numbers
 	# This displays the full path
@@ -220,14 +221,15 @@ function gt {
 
 		# Print the list immediately if the list only has 1 item
 		if ($files.count -eq 1) {
-			"[1] $file_paths"
+			less -i $file_paths[0]
+			return
 
 		# Display the list with a pager if its length is greater than 15
 		} elseif ($file_paths.count -gt 15) {
 			$stored_paths = @()
 			for ($i = 0; $i -lt $file_paths.count; $i++)
 				{ $stored_paths += "[$($i+1)] $($file_paths[$i])" }
-			$stored_paths | less
+			$stored_paths | less -i
 
 		# Print the list if its length is less than 15
 		} else {
@@ -278,7 +280,12 @@ function gcr {
 		[switch]$p
     )
 
-	if ($h) { "usage: [-h] [-p]"; return; }
+	if ($h) {
+		"usage: [-h] [-p]"
+		"  -h`tdisplay this message and exit"
+		"  -p`tpull the latest commit and join it with the local repo"
+		return
+	}
 
     $link = (read-host 'Enter remote repo link').Trim()
 
