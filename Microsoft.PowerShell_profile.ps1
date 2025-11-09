@@ -739,53 +739,59 @@ function Get-FileHeader {
 
 function da {
 	param (
-		[switch]$p,
+		[switch]$h,
+		[switch]$u,
+		[switch]$v,
 		[string]$link,
 		[string]$format = 'wav'
 	)
 
-	if ($p -and $link -eq "cp") {
-		set-clipboard "/home/nixos/Documents/Projects/yt-dlp/"
-		return
-	}
-
-	if (-not $link) { write-error "Link not provided"; return; }
-
-	pushd /home/nixos/Music/songs
-	/nix/store/hqz4lga5j1qw2v3jvf0aii1801paa7gz-yt-dlp-2025.09.26/bin/yt-dlp -x --audio-format $format $link
-	popd
-}
-
-function upack {
-	param(
-		[switch]$h,
-		[switch]$u,
-		[switch]$v
-	)
-
-	if ($h) {
-		"usage: [-v] [-u]"
+	if ($h)
+	{
+		"usage: [-v] [-u] <video-link>"
 		"`n`e[7m OPTIONS `e[0m"
-		"`n  -v`tchecks the versions both locally and online then prints them"
-		"`n  -u`tthis just rebuilds the local package.nix file"
-		"`n  NOTE: the local package cannot be updated automatically the hash for"
+		"  -v`tchecks the versions both locally and online then prints them"
+		"  -u`tthis just rebuilds the local package.nix file"
+		"  NOTE: the local package cannot be updated automatically the hash for"
 		"`tthe latest version must be taken manually and then the package.nix"
 		"`tfile must be updated with the new hash and version"
+		"`n`e[7m COMMAND `e[0m"
+		"  link`tthe link for the youtube video"
 		return
 	}
 
-	if ($v) { /nix/store/hqz4lga5j1qw2v3jvf0aii1801paa7gz-yt-dlp-2025.09.26/bin/yt-dlp -U; return; }
-	if ($u) {
+	if ($v) { /home/nixos/Documents/Projects/yt-dlp/result/bin/yt-dlp -U; return; }
+	if ($u)
+	{
 		pushd /home/nixos/Documents/Projects/yt-dlp
-		nix-build
+			nix-build
 		popd
 
-	} else { write-error "Invalid arguments, try -h" }
+	} elseif (-not $v -and -not $u -and -not $link) { write-error "Invalid arguments, try -h"; return; }
+
+	pushd /home/nixos/Music/songs
+	/home/nixos/Documents/Projects/yt-dlp/result/bin/yt-dlp -x --audio-format $format $link
+	popd
+
 }
 
 function fil {
 	param ( [string]$name)
 	file $name | sed 's/, /\n/g' | sed 's/^\(.*\)/\t[ \1 ]/g'
+}
+
+function edit {
+	param ( [string]$file )
+	if (-not $file) { steam-run /home/nixos/Downloads/edit }
+	else { steam-run /home/nixos/Downloads/edit $file }
+}
+
+function mserve {
+	param (
+		[int]$a,
+		[string]$b
+	)
+	/home/nixos/Documents/Projects/go_code/min_serve/minserve $a $b
 }
 
 # >>==========>> Nix functions
@@ -833,4 +839,11 @@ function switch: {
 		sudo nixos-rebuild switch --flake /home/nixos/nixos#$config_name --impure
 
     } else { Write-Error "Proper parameters were not given"; return; }
+}
+
+function get_menu {
+	rm ~/.cache/dmenu_run
+	pushd /home/nixos/nixos/user_configs/dmenu_config/
+		./dmenu_path
+	popd
 }
