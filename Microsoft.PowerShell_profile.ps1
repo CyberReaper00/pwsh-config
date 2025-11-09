@@ -309,16 +309,16 @@ function gcr {
 
 function pgh {
 	git status
-	"`n`n-----------------------------------------"
-	$message = read-host "`n`nEnter Commit Message"
+	"`n-----------------------------------------"
+	$message = read-host "`nEnter Commit Message"
 	
-	if ($message -eq "") { "`n`nSkipping repo..."; start-sleep -seconds 0.5; return; }
+	if ($message -eq "") { "`nSkipping repo..."; start-sleep -seconds 0.5; return; }
 
 	else {
 		git add .
 		git commit -m $message
-		"`n`n-----------------------------------------"
-		"`n`nPushing to github"
+		"`n-----------------------------------------"
+		"`nPushing to github"
 
 		while ($true) {
 			$branch = read-host 'Enter Branch'
@@ -329,17 +329,15 @@ function pgh {
 			else { write-error "An error occurred, try again" }
 		}
 
-		"`n`n-----------------------------------------"
-		"`n`nRepo push was successful"
+		"`n-----------------------------------------"
+		"`nRepo push was successful"
 
 		start-sleep -seconds 0.5
 	}
 }
 
 function pnver {
-	param (
-		[float]$version
-	)
+	param ( [string]$version )
 
 	if ( -not $version ) { write-error "new version was not provided..."; return; }
 
