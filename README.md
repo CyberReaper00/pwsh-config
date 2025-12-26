@@ -1,3 +1,6 @@
+> [!important]
+> i dont use github anymore, i moved here: https://codeberg.org/CyberReaper00
+
 # Overview
 In this config i have powershell as extensive as possible so that i can have a seamless dev environment to do whatever i want, whenever i want and go wherever i want with one command
 ## Terminal Greeting
